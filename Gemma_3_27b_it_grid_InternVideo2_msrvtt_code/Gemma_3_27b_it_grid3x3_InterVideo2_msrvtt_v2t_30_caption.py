@@ -24,7 +24,7 @@ warnings.filterwarnings("ignore", message="`torch.cuda.amp.autocast")
 #####################################################
 class Config:
     num_captions = 30  # how many text candidates we select from the similarity row
-    video_dir = "CLIP4Clip/MSRVTT"
+    video_dir = "MSRVTT"
 
 
 #####################################################
@@ -42,7 +42,7 @@ class VLMWorker:
         # Load processor (replaces tokenizer for Gemma 3)
         self.processor = AutoProcessor.from_pretrained(
             model_name, 
-            cache_dir="/ibex/user/shaebiyy"
+            cache_dir="./models"
         )
         
         # Load model
@@ -51,7 +51,7 @@ class VLMWorker:
             model_name,
             torch_dtype=torch.bfloat16,
             device_map=f"cuda:{gpu_id}",
-            cache_dir="/ibex/user/shaebiyy"
+            cache_dir="./models"
         ).eval()
     
         # Build transform once

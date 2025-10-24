@@ -22,7 +22,7 @@ warnings.filterwarnings("ignore", message="`torch.cuda.amp.autocast")
 #####################################################
 class Config:
     num_images = 30  # how many videos we select from similarity row 
-    video_dir = "CLIP4Clip/MSRVTT"
+    video_dir = "MSRVTT"
     # Adjust if your video path differs.
     # E.g. f"{video_dir}/{video_id}.mp4"
 
@@ -40,7 +40,7 @@ class VLMWorker:
         # Load processor (replaces tokenizer for Qwen3-VL)
         self.processor = AutoProcessor.from_pretrained(
             model_name, 
-            cache_dir="/ibex/user/shaebiyy"
+            cache_dir="./models"
         )
         
         # Load model with flash attention
@@ -49,7 +49,7 @@ class VLMWorker:
             torch_dtype=torch.bfloat16,
             attn_implementation="flash_attention_2",
             device_map=f"cuda:{gpu_id}",
-            cache_dir="/ibex/user/shaebiyy"
+            cache_dir="./models"
         ).eval()
         
         # Remove the transform - Qwen3-VL handles this internally

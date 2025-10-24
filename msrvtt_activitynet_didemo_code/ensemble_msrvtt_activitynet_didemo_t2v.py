@@ -21,7 +21,7 @@ warnings.filterwarnings("ignore", message="`torch.cuda.amp.autocast")
 #####################################################
 class Config:
     num_images = 14  # Set dynamically via command-line
-    video_dir = "CLIP4Clip/MSRVTT"  # Set dynamically via command-line
+    video_dir = "MSRVTT"  # Set dynamically via command-line
     model_name = "OpenGVLab/InternVL3_5-38B"  # Set dynamically via command-line
     grid_size = 3  # Set dynamically via command-line
     ensemble_mode = "soft"  # Set dynamically via command-line
@@ -44,7 +44,7 @@ class VLMWorker:
             Config.model_name,
             trust_remote_code=True,
             use_fast=False,
-            cache_dir="/ibex/user/shaebiyy"
+            cache_dir="./models"
         )
         
         # Load model
@@ -55,7 +55,7 @@ class VLMWorker:
             trust_remote_code=True,
             use_flash_attn=True,
             device_map=f"cuda:{gpu_id}",
-            cache_dir="/ibex/user/shaebiyy"
+            cache_dir="./models"
         ).eval()
         
         # Build transform once

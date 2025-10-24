@@ -24,7 +24,7 @@ warnings.filterwarnings("ignore", message="`torch.cuda.amp.autocast")
 #####################################################
 class Config:
     num_captions = 20  # how many text candidates we select from the similarity row
-    video_dir = "CLIP4Clip/MSRVTT"
+    video_dir = "MSRVTT"
 
 
 #####################################################
@@ -44,7 +44,7 @@ class VLMWorker:
         self.processor = AutoProcessor.from_pretrained(
             model_name, 
             trust_remote_code=True,
-            cache_dir="/ibex/user/shaebiyy"
+            cache_dir="./models"
         )
         
         # Load model
@@ -56,7 +56,7 @@ class VLMWorker:
             low_cpu_mem_usage=True,
             trust_remote_code=True,
             device_map=f"cuda:{gpu_id}",
-            cache_dir="/ibex/user/shaebiyy"
+            cache_dir="./models"
         ).eval()
     
         # Build transform once (keep as is)

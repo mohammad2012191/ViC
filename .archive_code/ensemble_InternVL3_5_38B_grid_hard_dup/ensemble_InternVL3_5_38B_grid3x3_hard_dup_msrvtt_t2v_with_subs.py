@@ -23,7 +23,7 @@ warnings.filterwarnings("ignore", message="`torch.cuda.amp.autocast")
 #####################################################
 class Config:
     num_images = 14  # how many videos we select from similarity row 
-    video_dir = "CLIP4Clip/MSRVTT"
+    video_dir = "MSRVTT"
     ensemble_mode = "hard_dup"      # "soft" | "hard_dup" | "hard_unique" | None
     ensemble_weights = None     # e.g., [0.5, 0.3, 0.2]; same len as # of sim_mats
     per_model_topk = 4          # k picked from each system when using hard_* modes
@@ -41,7 +41,7 @@ class VLMWorker:
         # Model name
         model_name = "OpenGVLab/InternVL3_5-38B"
         # Load tokenizer
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True, use_fast=False, cache_dir="/ibex/user/shaebiyy")
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True, use_fast=False, cache_dir="./models")
         # Load model
         self.model = AutoModel.from_pretrained(
             model_name,
@@ -50,7 +50,7 @@ class VLMWorker:
             trust_remote_code=True,
             use_flash_attn=True,
             device_map=f"cuda:{gpu_id}",
-            cache_dir="/ibex/user/shaebiyy"
+            cache_dir="./models"
         ).eval()
 
         # Build transform once

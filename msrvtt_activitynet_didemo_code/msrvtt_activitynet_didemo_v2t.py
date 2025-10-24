@@ -23,7 +23,7 @@ warnings.filterwarnings("ignore", message="`torch.cuda.amp.autocast")
 #####################################################
 class Config:
     num_captions = 20  # how many text candidates we select from the similarity row
-    video_dir = "CLIP4Clip/MSRVTT"
+    video_dir = "MSRVTT"
     model_name = "OpenGVLab/InternVL3_5-38B"
     grid_size = 3
     use_subs = False
@@ -40,7 +40,7 @@ class VLMWorker:
         torch.cuda.set_device(gpu_id)
 
         # Load tokenizer
-        self.tokenizer = AutoTokenizer.from_pretrained(Config.model_name, trust_remote_code=True, use_fast=False, cache_dir="/ibex/user/shaebiyy")
+        self.tokenizer = AutoTokenizer.from_pretrained(Config.model_name, trust_remote_code=True, use_fast=False, cache_dir="./models")
         # Load model
         self.model = AutoModel.from_pretrained(
             Config.model_name,
@@ -49,7 +49,7 @@ class VLMWorker:
             trust_remote_code=True,
             use_flash_attn=True,
             device_map=f"cuda:{gpu_id}",
-            cache_dir="/ibex/user/shaebiyy"
+            cache_dir="./models"
         ).eval()
 
         # Build transform once
