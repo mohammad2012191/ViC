@@ -24,7 +24,7 @@ def parse_args():
     
     # Required arguments
     parser.add_argument("--sim_paths", nargs="+", required=True,
-                        help="List of similarity matrix paths (e.g., clip4clip_msrvtt.npy GRAM_msrvtt_tvas.npy) - ORDER MATTERS!!!")
+                        help="List of similarity matrix paths (e.g., clip4clip_msrvtt.npy GRAM_msrvtt.npy) - ORDER MATTERS!!!")
     parser.add_argument("--csv_path", type=str, required=True,
                         help="Path to CSV file with columns: key, vid_key, video_id, sentence")
     parser.add_argument("--video_dir", type=str, required=True,
@@ -37,9 +37,9 @@ def parse_args():
                         help="Grid size for video frame sampling (e.g., 3 for 3x3, 4 for 4x4)")
     
     # Ensemble mode argument
-    parser.add_argument("--ensemble_mode", type=str, default="hard_dup",
-                        choices=["soft", "hard_dup", "hard_unique", "none"],
-                        help="Ensemble mode: soft, hard_dup, hard_unique, or none")
+    parser.add_argument("--ensemble_mode", type=str, default="ViC_duplicate",
+                        choices=[ "ViC_duplicate", "ViC_unique", "none"],
+                        help="Ensemble mode:  ViC_duplicate, ViC_unique, or none")
     
     # Subtitle arguments
     parser.add_argument("--use_subs", action="store_true",

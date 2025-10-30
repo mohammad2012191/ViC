@@ -1,4 +1,4 @@
-name: s-grid-env
+name: vote-in-context-env
 channels:
   - pytorch
   - nvidia

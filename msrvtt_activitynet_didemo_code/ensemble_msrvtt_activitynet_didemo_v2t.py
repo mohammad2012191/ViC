@@ -26,7 +26,7 @@ class Config:
     grid_size = 3  # Set dynamically via command-line
     use_subs = False  # Set dynamically via command-line
     subtitle_json = None  # Set dynamically via command-line
-    ensemble_mode = "hard_dup"  # "soft" | "hard_dup" | "hard_unique" | None
+    ensemble_mode = "ViC_duplicate"  # | "ViC_duplicate" | "ViC_unique" | None
     ensemble_weights = None  # e.g., [0.5, 0.3, 0.2]; same len as # of sim_mats
     per_model_topk = 4  # k picked from each system when using hard_* modes
 
@@ -315,12 +315,12 @@ class VLMWorker:
             return np.zeros_like(x, dtype=np.float32)
         return (x - mn) / (mx - mn)
         
-    def _select_candidates_from_ensembles(self, row_or_col_idx, sim_mats, top_k, mode="soft", weights=None):
+    def _select_candidates_from_ensembles(self, row_or_col_idx, sim_mats, top_k, mode="ViC_unique", weights=None):
         """
         sim_mats:
           - single np.ndarray of shape (Q, N)  -> we take sim_mats[row_or_col_idx]
           - OR list of arrays, each (Q, N), same shape/order.
-        Returns: np.ndarray of candidate indices length top_k (with duplicates possible only if mode='hard_dup').
+        Returns: np.ndarray of candidate indices length top_k (with duplicates possible only if mode='ViC_duplicate').
         """
         # normalize to list
         mats = sim_mats if isinstance(sim_mats, (list, tuple)) else [sim_mats]
@@ -331,20 +331,12 @@ class VLMWorker:
         if len(mats) == 1 or mode in (None, "", "none"):
             return np.argsort(-rows[0])[:top_k]
     
-        if mode == "soft":
-            # per-system row min-max, then weighted sum
-            ws = np.asarray(weights, dtype=np.float32) if weights is not None else np.ones(len(rows), dtype=np.float32)
-            ws = ws / (ws.sum() + 1e-8)
-            fused = np.zeros_like(rows[0], dtype=np.float32)
-            for w, r in zip(ws, rows):
-                fused += w * self._row_minmax(r)
-            return np.argsort(-fused)[:top_k]
     
         # rank lists per system (descending)
         per_k = getattr(Config, "per_model_topk", 4)
         ranked = [np.argsort(-r)[:max(top_k, per_k)] for r in rows]
     
-        if mode == "hard_dup":
+        if mode == "ViC_duplicate":
             bag = []
             # round-robin concat with duplicates
             for rank_pos in range(max(top_k, per_k)):
@@ -357,7 +349,7 @@ class VLMWorker:
             flat = np.concatenate(ranked, axis=0)
             return np.asarray(flat[:top_k], dtype=np.int64)
     
-        if mode == "hard_unique":
+        if mode == "ViC_unique":
             chosen, seen = [], set()
             for rank_pos in range(max(top_k, per_k)):
                 for lst in ranked:
@@ -367,14 +359,7 @@ class VLMWorker:
                             chosen.append(idx); seen.add(idx)
                             if len(chosen) >= top_k:
                                 return np.asarray(chosen, dtype=np.int64)
-            # still not enough unique? fill by soft vote fallback
-            sv = self._select_candidates_from_ensembles(row_or_col_idx, mats, top_k*2, mode="soft", weights=weights)
-            for idx in sv:
-                if idx not in seen:
-                    chosen.append(int(idx)); seen.add(int(idx))
-                if len(chosen) >= top_k:
-                    break
-            return np.asarray(chosen[:top_k], dtype=np.int64)
+
     
         raise ValueError(f"Unknown ensemble mode: {mode}")
         

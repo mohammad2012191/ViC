@@ -1,91 +1,57 @@
+# Quick Start
 
-## 📁 Project Structure
-
-```
-S-Grid-Video-Reranker/
-├── .archive_code/              # Legacy code versions
-├── Dataset_fixers/             # Dataset preprocessing utilities
-├── Gemma_3_27b_it_grid_InternVideo2_msrvtt_code/
-├── Groud_Truth/                # Ground truth annotations
-├── Paper_logs/                 # Experiment logs
-├── Qwen3_VL_30B_A3B_Instruct_grid_InternVideo2_msrvtt/
-├── Similarity_Matrices/        # Pre-computed similarity matrices
-├── Subtitles/                  # Video subtitle files
-├── Vatex_code/                 # VATEX dataset specific code
-├── Msrvtt_activitynet_didemo_code/
-│   ├── ensemble_msrvtt_activitynet_didemo_t2v.py        # Ensemble T2V inference
-│   ├── ensemble_msrvtt_activitynet_didemo_v2t.py        # Ensemble V2T inference
-│   ├── msrvtt_activitynet_didemo_t2v.py                 # Single-model T2V inference
-│   ├── msrvtt_activitynet_didemo_v2t.py                 # Single-model V2T inference
-│   ├── ensemble_wrapper_msrvtt_activitynet_didemo_t2v.py  # Ensemble T2V wrapper
-│   ├── ensemble_wrapper_msrvtt_activitynet_didemo_v2t.py  # Ensemble V2T wrapper
-│   ├── wrapper_msrvtt_activitynet_didemo_t2v.py           # Single-model T2V wrapper
-│   └── wrapper_msrvtt_activitynet_didemo_v2t.py           # Single-model V2T wrapper
-│
-├── How_to_use.ipynb           # Usage examples
-└── README.md                  # This file
-```
-
-## 🚀 Quick Start
-
-### Prerequisites
+## Prerequisites
 
 - Python 3.8 or higher
 - CUDA-compatible GPU (for distributed training)
     - 1 A100 is enough
 - conda or pip package manager
 
-### Installation
+## Installation
 
 ```bash
 # Clone the repository
-git clone https://github.com/mohammad2012191/S-Grid-Video-Reranker.git
-cd S-Grid-Video-Reranker
+git clone https://github.com/mohammad2012191/Vote-in-Context-Fusion.git
+cd Vote-in-Context-Fusion
 
-# Option 1: Using conda (recommended)
+# Using conda 
 conda env create -f environment.yml
-conda activate s-grid-env
-
-# Option 2: Using pip
-pip install -r requirements.txt # Not recommended, I don't even know if it works.
+conda activate vote-in-context-env
 ```
 
-
-### Required Data
+## Required Data
 
 1. **CSV File**: Contains video metadata with columns: `key`, `vid_key`, `video_id`, `sentence`
 2. **Similarity Matrices**: Pre-computed `.npy` files from retrieval models (e.g., CLIP4Clip, GRAM, InternVideo2)
 3. **Video Directory**: Folder containing video files all are mp4 format
-    > If you want access to the encoded mp4 datasets please raise a request and the kaggle access will be given
 4. **Subtitle JSON** (optional): JSON file with video subtitles
 
-## 📖 Usage
+##  ViC Usage
 
 ### Text-to-Video Retrieval (Ensemble Mode)
-
 ```bash
-torchrun --nproc_per_node=3 ensemble_wrapper_msrvtt_activitynet_didemo_t2v.py \
-  --sim_paths clip4clip_msrvtt.npy GRAM_msrvtt_tvas.npy InternVideo2_msrvtt.npy \
-  --csv_path descs_ret_test_msrvtt.csv \
+torchrun --nproc_per_node=3 Msrvtt_activitynet_didemo_code\ensemble_wrapper_msrvtt_activitynet_didemo_t2v.py \
+  --sim_paths Similarity_Matrices\clip4clip_msrvtt.npy Similarity_Matrices\GRAM_msrvtt.npy Similarity_Matrices\InternVideo2_msrvtt.npy \
+  --csv_path Groud_Truth\descs_ret_test_msrvtt.csv \
   --video_dir MSRVTT \
   --num_images 14 \
   --model_name OpenGVLab/InternVL3_5-38B \
   --grid_size 3 \
-  --ensemble_mode hard_dup \
+  --ensemble_mode ViC_duplicate \
   2>&1 | tee logs/msrvtt_t2v_ensemble.log
 ```
 
 ### Video-to-Text Retrieval (Ensemble Mode)
 
 ```bash
-torchrun --nproc_per_node=3 ensemble_wrapper_msrvtt_activitynet_didemo_v2t.py \
-  --sim_paths clip4clip_msrvtt.npy GRAM_msrvtt_tvas.npy InternVideo2_msrvtt.npy \
-  --csv_path descs_ret_test_msrvtt.csv \
+torchrun --nproc_per_node=3 Msrvtt_activitynet_didemo_code\ensemble_wrapper_msrvtt_activitynet_didemo_v2t.py \
+  --sim_paths Similarity_Matrices\clip4clip_msrvtt.npy Similarity_Matrices\GRAM_msrvtt.npy Similarity_Matrices\InternVideo2_msrvtt.npy \
+  --csv_path Groud_Truth\descs_ret_test_msrvtt.csv \
   --video_dir MSRVTT \
   --num_captions 20 \
   --model_name OpenGVLab/InternVL3_5-38B \
   --grid_size 3 \
-  --ensemble_mode hard_dup \
+  --ensemble_mode ViC_duplicate \
   2>&1 | tee logs/msrvtt_v2t_ensemble.log
 ```
 
@@ -94,29 +60,28 @@ torchrun --nproc_per_node=3 ensemble_wrapper_msrvtt_activitynet_didemo_v2t.py \
 For single similarity matrix (no ensemble):
 
 ```bash
-torchrun --nproc_per_node=3 wrapper_msrvtt_activitynet_didemo_t2v.py \
-  --sim_path clip4clip_msrvtt.npy \
-  --csv_path descs_ret_test_msrvtt.csv \
+torchrun --nproc_per_node=3 Msrvtt_activitynet_didemo_code\wrapper_msrvtt_activitynet_didemo_t2v.py \
+  --sim_path Similarity_Matrices\clip4clip_msrvtt.npy \
+  --csv_path Groud_Truth\descs_ret_test_msrvtt.csv \
   --video_dir MSRVTT \
   --num_images 14 \
   --model_name OpenGVLab/InternVL3_5-38B \
   --grid_size 3 \
   2>&1 | tee logs/msrvtt_t2v_single.log
 ```
-
 ### With Subtitles
 
 ```bash
-torchrun --nproc_per_node=3 ensemble_wrapper_msrvtt_activitynet_didemo_t2v.py \
-  --sim_paths clip4clip_msrvtt.npy GRAM_msrvtt_tvas.npy InternVideo2_msrvtt.npy \
-  --csv_path descs_ret_test_msrvtt.csv \
+torchrun --nproc_per_node=3 Msrvtt_activitynet_didemo_code\ensemble_wrapper_msrvtt_activitynet_didemo_t2v.py \
+  --sim_paths Similarity_Matrices\clip4clip_msrvtt.npy Similarity_Matrices\GRAM_msrvtt.npy Similarity_Matrices\InternVideo2_msrvtt.npy \
+  --csv_path Groud_Truth\descs_ret_test_msrvtt.csv \
   --video_dir MSRVTT \
   --num_images 14 \
   --model_name OpenGVLab/InternVL3_5-38B \
   --grid_size 3 \
-  --ensemble_mode hard_dup \
+  --ensemble_mode ViC_duplicate \
   --use_subs \
-  --subtitle_json msrvtt_subtitles.json \
+  --subtitle_json Subtitles\msrvtt_subtitles.json \
   2>&1 | tee logs/msrvtt_t2v_with_subs.log
 ```
 
@@ -126,83 +91,90 @@ torchrun --nproc_per_node=3 ensemble_wrapper_msrvtt_activitynet_didemo_t2v.py \
 
 | Parameter | Description | Default | Example |
 |-----------|-------------|---------|---------|
-| `--sim_paths` | List of similarity matrix paths (ensemble mode) - the order matters for hard_dup and hard_unique | Required | `clip4clip.npy GRAM.npy` |
+| `--sim_paths` | List of similarity matrix paths (ensemble mode) - the order matters for ViC_duplicate and ViC_unique | Required | `clip4clip.npy GRAM.npy` |
 | `--sim_path` | Single similarity matrix path | Required | `clip4clip.npy` |
 | `--csv_path` | Path to CSV with video metadata | Required | `descs_ret_test_msrvtt.csv` |
 | `--video_dir` | Directory containing videos | Required | `MSRVTT` |
 | `--num_images` | Number of video candidates to rerank | Required | `14` |
 | `--model_name` | InternVL model name | Required | `OpenGVLab/InternVL3_5-38B` |
 | `--grid_size` | Grid size for frame sampling | Required | `3` (for 3×3 grid) |
-| `--ensemble_mode` | Ensemble strategy | `hard_dup` | `soft`, `hard_dup`, `hard_unique`, `none` |
+| `--ensemble_mode` | Ensemble strategy | `ViC_duplicate` |  `ViC_duplicate`, `ViC_unique`, `none` |
 | `--use_subs` | Enable subtitle usage | `False` | flag |
 | `--subtitle_json` | Path to subtitle JSON | `None` | `msrvtt_subtitles.json` |
 
 ### Video-to-Text (V2T) Parameters
 
 Same as T2V, except:
-- Use `--num_captions` instead of `--num_images` (typically 20)
+- Use `--num_captions` instead of `--num_images`
 
-## 🔧 Ensemble Modes
 
-The system supports multiple ensemble strategies for combining similarity matrices:
+## Baseline Usage
 
-### 1. **Soft Ensemble** (`soft`)
-- Normalizes each similarity matrix row-wise using min-max scaling
-- Computes weighted sum of normalized scores
-- Returns top-k candidates based on fused scores
 
-### 2. **Hard Duplicate** (`hard_dup`)
-- Takes top-k candidates from each similarity matrix
-- Performs round-robin selection (allows duplicates)
-    - We found this gives the best results in general.
+### Text-to-Video Retrieval (CombSum)
 
-### 3. **Hard Unique** (`hard_unique`)
-- Similar to hard_dup but ensures unique candidates
-- Falls back to soft voting if insufficient unique candidates
-
-### 4. **None** (`none`)
-- Uses only the first similarity matrix
-- No ensemble computation
-
-## 📊 Evaluation Metrics
-
-The system computes standard retrieval metrics:
-- **Recall@1**: Percentage of queries where the correct item is ranked first
-- **Recall@5**: Percentage of queries where the correct item is in top-5
-- **Recall@10**: Percentage of queries where the correct item is in top-10
-
-Example output:
-```
-==================== Final Results ====================
-Recall@1:  0.4523
-Recall@5:  0.7834
-Recall@10: 0.8912
-Total processed: 1000/1000
+```bash
+python wrapper_baseline.py \
+  --method combsum \
+  --mode t2v \
+  --sim_paths Similarity_Matrices\clip4clip_msrvtt.npy Similarity_Matrices\GRAM_msrvtt.npy Similarity_Matrices\InternVideo2_msrvtt.npy \
+  --csv_path Groud_Truth\descs_ret_test_msrvtt.csv \
+  --video_dir MSRVTT \
+  --output_path Similarity_Matrices\combsum_fused_msrvtt_t2v.npy \
+  --normalization minmax \
+  --evaluate
 ```
 
-## 🗂️ Dataset
+## Configuration Options
 
-###  Datasets That we worked with 
-1. **MSR-VTT**
-2. **DiDeMo**
-3. **ActivityNet**
-4. **VATEX**
+### Common Parameters
 
-> The same scripts should work on any other dataset as long as you follow the same stcture, for example MSVD
+| Parameter | Description | Default | Example |
+|-----------|-------------|---------|---------|
+| `--method` | Ensemble method to use | Required | `combsum`, `combmnz`, `rrf` |
+| `--mode` | Retrieval mode | Required | `t2v`, `v2t` |
+| `--sim_paths` | List of similarity matrix paths (.npy files) | Required | `clip4clip.npy GRAM.npy` |
+| `--csv_path` | Path to CSV file (columns: video_id, sentence) | Required | `descs_ret_test_msrvtt.csv` |
+| `--video_dir` | Directory containing video files | Required | `MSRVTT` |
+| `--output_path` | Path to save fused similarity matrix | `{method}_fused_{mode}.npy` | `combsum_result.npy` |
+| `--evaluate` | Evaluate and print Recall@1/5/10 metrics | `False` | flag |
+| `--quiet` | Suppress progress output | `False` | flag |
 
-### Note on VATEX
-VATEX dataset requires different data loading mechanism and is handled separately in the `Vatex_code/` directory. You can find how to use this in the How to use notebook.
+### CombSum / CombMNZ Parameters
 
-## 🔬 Experiments
+| Parameter | Description | Default | Methods | Example |
+|-----------|-------------|---------|---------|---------|
+| `--normalization` | Score normalization method | `minmax` | CombSum, CombMNZ | `minmax`, `zscore`, `none` |
+| `--weights` | Custom weights for each matrix (must sum to 1.0) | Equal weights | CombSum, CombMNZ | `0.5 0.3 0.2` |
+| `--threshold` | Threshold for non-zero detection | `1e-6` | CombMNZ only | `1e-5` |
 
-See Paper_logs for comprehensive experiments including:
-- Different ensemble modes
-- Various grid sizes
-- Model size comparisons (8B, 14B, 38B)
-- With/without subtitles
-- Different similarity matrix combinations
+### RRF Parameters
 
-## 💾 Model Cache
+| Parameter | Description | Default | Methods | Example |
+|-----------|-------------|---------|---------|---------|
+| `--k` | RRF constant (rank offset parameter) | `60` | RRF only | `100` |
 
-Models are cached in `./models` by default. Update the `cache_dir` parameter in the code to change the location.
 
+## Using Hard-Coded Versions
+
+For specific model and dataset combinations, hard-coded wrapper scripts are available that don't require command-line arguments.
+
+### VATEX Dataset
+```bash
+torchrun --nproc_per_node=2 --master_port=29501 Vatex_code\VATEX_Wrapper_InternVL3_5_38B_grid3x3_VAST_t2v.py \
+  2>&1 | tee logs/VATEX_InternVL3_5_38B_grid3x3_VAST_t2v.log
+```
+
+### Qwen Model (MSRVTT Dataset)
+```bash
+torchrun --nproc_per_node=2 --master_port=29501 Qwen3_VL_30B_A3B_Instruct_grid_InternVideo2_msrvtt\Wrapper_Qwen3_VL_30B_A3B_Instruct_grid3x3_InternVideo2_msrvtt_t2v_30_grids.py \
+  2>&1 | tee logs/Qwen3_VL_30B_A3B_Instruct_grid3x3_InternVideo2_msrvtt_t2v_30_grids.log
+```
+
+### Gemma Model (MSRVTT Dataset)
+```bash
+torchrun --nproc_per_node=2 --master_port=29501 Gemma_3_27b_it_grid_InternVideo2_msrvtt_code\Wrapper_Gemma_3_27b_it_grid3x3_InternVideo2_msrvtt_v2t_20_captions.py \
+  2>&1 | tee logs/Gemma_3_27b_it_grid3x3_InterVideo2_msrvtt_v2t_20_caption.log
+```
+
+**Note**: These scripts have all parameters (paths, model names, grid sizes, etc.) configured internally. Simply run the command without additional arguments. More versions are available inside each folder and can be configured there to use new paths etc.
