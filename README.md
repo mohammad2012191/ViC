@@ -34,14 +34,14 @@ conda activate vote-in-context-env
 torchrun --nproc_per_node=4 Scripts\ensemble_wrapper.py \
   --retrieval_mode t2v \
   --sim_paths Similarity_Matrices\InternVideo2_msrvtt.npy Similarity_Matrices\GRAM_msrvtt.npy \
-  --csv_path descs_ret_test_msrvtt.csv \
+  --csv_path Groud_Truth\descs_ret_test_msrvtt.csv \
   --video_dir MSRVTT \
   --num_images 14 \
   --model_name OpenGVLab/InternVL3_5-38B \
   --grid_size 3 \
   --ensemble_mode ViC_duplicate \
   --use_subs \
-  --subtitle_json msrvtt_subtitles.json \
+  --subtitle_json Subtitles\msrvtt_subtitles.json \
   2>&1 | tee logs/msrvtt_t2v_with_subs.log
 ```
 
@@ -50,7 +50,7 @@ torchrun --nproc_per_node=4 Scripts\ensemble_wrapper.py \
 torchrun --nproc_per_node=4 Scripts\ensemble_wrapper.py \
   --retrieval_mode t2v \
   --sim_paths Similarity_Matrices\InternVideo2_msrvtt.npy  \
-  --csv_path descs_ret_test_msrvtt.csv \
+  --csv_path Groud_Truth\descs_ret_test_msrvtt.csv \
   --video_dir MSRVTT \
   --num_images 14 \
   --model_name OpenGVLab/InternVL3_5-38B \
@@ -67,7 +67,7 @@ torchrun --nproc_per_node=4 Scripts\ensemble_wrapper.py \
 torchrun --nproc_per_node=4 Scripts\ensemble_wrapper.py \
   --retrieval_mode v2t \
   --sim_paths  Similarity_Matrices\InternVideo2_msrvtt.npy Similarity_Matrices\GRAM_msrvtt.npy Similarity_Matrices\clip4clip_msrvtt.npy \
-  --csv_path descs_ret_test_msrvtt.csv \
+  --csv_path Groud_Truth\descs_ret_test_msrvtt.csv \
   --video_dir MSRVTT \
   --num_captions 20 \
   --model_name OpenGVLab/InternVL3_5-38B \
@@ -81,14 +81,14 @@ torchrun --nproc_per_node=4 Scripts\ensemble_wrapper.py \
 torchrun --nproc_per_node=4 Scripts\ensemble_wrapper.py \
   --retrieval_mode v2t \
   --sim_paths Similarity_Matrices\InternVideo2_msrvtt.npy Similarity_Matrices\GRAM_msrvtt.npy \
-  --csv_path descs_ret_test_msrvtt.csv \
+  --csv_path Groud_Truth\descs_ret_test_msrvtt.csv \
   --video_dir MSRVTT \
   --num_captions 20 \
   --model_name OpenGVLab/InternVL3_5-38B \
   --grid_size 3 \
   --ensemble_mode ViC_duplicate \
   --use_subs \
-  --subtitle_json msrvtt_subtitles.json \
+  --subtitle_json Subtitles\msrvtt_subtitles.json \
   2>&1 | tee logs/msrvtt_v2t_with_subs.log
 ```
 
@@ -100,7 +100,7 @@ torchrun --nproc_per_node=4 Scripts\ensemble_wrapper.py \
 |-----------|-------------|---------|
 | `--retrieval_mode` | Task type: `t2v` or `v2t` | `t2v` |
 | `--sim_paths` | List of similarity matrix paths | `clip4clip.npy GRAM.npy` |
-| `--csv_path` | Path to CSV with metadata | `descs_ret_test_msrvtt.csv` |
+| `--csv_path` | Path to CSV with metadata | `Groud_Truth\descs_ret_test_msrvtt.csv` |
 | `--video_dir` | Directory containing videos | `MSRVTT` |
 | `--model_name` | InternVL model variant | `OpenGVLab/InternVL3_5-38B` |
 | `--grid_size` | Frame sampling grid size | `3` (for 3×3) |
@@ -118,7 +118,7 @@ torchrun --nproc_per_node=4 Scripts\ensemble_wrapper.py \
 |-----------|-------------|---------|---------|
 | `--ensemble_mode` | Ensemble strategy | `ViC_duplicate` | `ViC_duplicate`, `ViC_unique`, `none` |
 | `--use_subs` | Enable subtitles | `False` | Flag (no value) |
-| `--subtitle_json` | Path to subtitle JSON | `None` | `msrvtt_subtitles.json` |
+| `--subtitle_json` | Path to subtitle JSON | `None` | `Subtitles\msrvtt_subtitles.json` |
 
 ## Notes
 
@@ -149,7 +149,7 @@ python wrapper_baseline.py \
 | `--method` | Ensemble method to use | Required | `combsum`, `combmnz`, `rrf` |
 | `--mode` | Retrieval mode | Required | `t2v`, `v2t` |
 | `--sim_paths` | List of similarity matrix paths (.npy files) | Required | `clip4clip.npy GRAM.npy` |
-| `--csv_path` | Path to CSV file (columns: video_id, sentence) | Required | `descs_ret_test_msrvtt.csv` |
+| `--csv_path` | Path to CSV file (columns: video_id, sentence) | Required | `Groud_Truth\descs_ret_test_msrvtt.csv` |
 | `--video_dir` | Directory containing video files | Required | `MSRVTT` |
 | `--output_path` | Path to save fused similarity matrix | `{method}_fused_{mode}.npy` | `combsum_result.npy` |
 | `--evaluate` | Evaluate and print Recall@1/5/10 metrics | `False` | flag |
