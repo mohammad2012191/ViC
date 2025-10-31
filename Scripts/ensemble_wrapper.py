@@ -9,8 +9,8 @@ import logging
 import numpy as np
 import pandas as pd
 import argparse
-from ensemble_msrvtt_activitynet_didemo_v2t import run_distributed_inference
-from ensemble_msrvtt_activitynet_didemo_v2t import Config
+from ensemble_retrieval import run_distributed_inference
+from ensemble_retrieval import Config
 
 # Suppress logs
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -20,22 +20,33 @@ transformers.logging.set_verbosity_error()
 logging.getLogger("torch.cuda").setLevel(logging.ERROR)
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Distributed Video-to-Text Retrieval with InternVL")
+    parser = argparse.ArgumentParser(description="Distributed Video-Text Retrieval with InternVL")
     
     # Required arguments
+    parser.add_argument("--retrieval_mode", type=str, required=True,
+                        choices=["t2v", "v2t"],
+                        help="Retrieval mode: t2v (text-to-video) or v2t (video-to-text)")
     parser.add_argument("--sim_paths", nargs="+", required=True,
                         help="List of similarity matrix paths (e.g., clip4clip_msrvtt.npy GRAM_msrvtt.npy) - ORDER MATTERS!!!")
     parser.add_argument("--csv_path", type=str, required=True,
                         help="Path to CSV file with columns: key, vid_key, video_id, sentence")
     parser.add_argument("--video_dir", type=str, required=True,
                         help="Directory containing video files")
-    parser.add_argument("--num_captions", type=int, required=True,
-                        help="Number of text candidates to select from similarity matrix")
     parser.add_argument("--model_name", type=str, required=True,
                         help="Model name (e.g., OpenGVLab/InternVL3_5-38B)")
     parser.add_argument("--grid_size", type=int, required=True,
                         help="Grid size for video frame sampling (e.g., 3 for 3x3, 4 for 4x4)")
     
+    # Mode-specific arguments
+    parser.add_argument("--num_images", type=int, default=None,
+                        help="Number of video candidates to select (for t2v mode)")
+    parser.add_argument("--num_captions", type=int, default=None,
+                        help="Number of text candidates to select (for v2t mode)")
+    
+    # Ensemble mode argument
+    parser.add_argument("--ensemble_mode", type=str, default="ViC_duplicate",
+                        choices=["ViC_duplicate", "ViC_unique", "none"],
+                        help="Ensemble mode: ViC_duplicate, ViC_unique, or none")
     
     # Subtitle arguments
     parser.add_argument("--use_subs", action="store_true",
@@ -43,14 +54,18 @@ def parse_args():
     parser.add_argument("--subtitle_json", type=str, default=None,
                         help="Path to subtitle JSON file (required if --use_subs is set)")
     
-    parser.add_argument("--ensemble_mode", type=str, default="ViC_duplicate",
-                    choices=[ "ViC_duplicate", "ViC_unique", "none"],
-                    help="Ensemble mode:  ViC_duplicate, ViC_unique, or none")
-    
     return parser.parse_args()
 
 def main():
     args = parse_args()
+    
+    # Validate mode-specific arguments
+    if args.retrieval_mode == "t2v":
+        if args.num_images is None:
+            raise ValueError("--num_images must be provided for t2v mode")
+    elif args.retrieval_mode == "v2t":
+        if args.num_captions is None:
+            raise ValueError("--num_captions must be provided for v2t mode")
     
     # Validate subtitle arguments
     if args.use_subs and args.subtitle_json is None:
@@ -67,13 +82,18 @@ def main():
     ##################################################
     # 2) Update Config with command-line arguments
     ##################################################
-    Config.num_captions = args.num_captions
+    Config.retrieval_mode = args.retrieval_mode
     Config.video_dir = args.video_dir
     Config.model_name = args.model_name
     Config.grid_size = args.grid_size
+    Config.ensemble_mode = args.ensemble_mode
     Config.use_subs = args.use_subs
     Config.subtitle_json = args.subtitle_json
-    Config.ensemble_mode = args.ensemble_mode
+    
+    if args.retrieval_mode == "t2v":
+        Config.num_images = args.num_images
+    else:  # v2t
+        Config.num_captions = args.num_captions
     
     ##################################################
     # 3) Load CSV + similarity matrix
@@ -81,8 +101,14 @@ def main():
     df = pd.read_csv(args.csv_path)
     df.sort_values('video_id', inplace=True)
     df.reset_index(drop=True, inplace=True)
-        
-    sim_mats = [np.load(p).T for p in args.sim_paths]
+    
+    # Load similarity matrices based on mode
+    if args.retrieval_mode == "t2v":
+        # For t2v: NO transpose (texts are rows, videos are columns)
+        sim_mats = [np.load(p) for p in args.sim_paths]
+    else:  # v2t
+        # For v2t: TRANSPOSE (videos become rows, texts are columns)
+        sim_mats = [np.load(p).T for p in args.sim_paths]
     
     # Sanity check: CSV length must match first dimension of each mat
     for p, m in zip(args.sim_paths, sim_mats):
@@ -91,9 +117,14 @@ def main():
     
     if rank == 0:
         print(f"Loaded {len(sim_mats)} similarity matrices")
+        print(f"Retrieval mode: {args.retrieval_mode}")
         print(f"Model: {args.model_name}")
         print(f"Grid size: {args.grid_size}x{args.grid_size}")
-        print(f"Ensemble mode: {args.ensemble_mode}")  # ADD THIS LINE
+        print(f"Ensemble mode: {args.ensemble_mode}")
+        if args.retrieval_mode == "t2v":
+            print(f"Number of images (candidates): {args.num_images}")
+        else:
+            print(f"Number of captions (candidates): {args.num_captions}")
         print(f"Use subtitles: {args.use_subs}")
         if args.use_subs:
             print(f"Subtitle JSON: {args.subtitle_json}")
@@ -109,7 +140,7 @@ def main():
     ##################################################
     # 5) Run the inference on this slice
     ##################################################
-    c1, c5, c10, local_count = run_distributed_inference(local_rank, data_slice, df, sim_mats) 
+    c1, c5, c10, local_count = run_distributed_inference(local_rank, data_slice, df, sim_mats)
     
     # Convert partial stats to a tensor
     part_tensor = torch.tensor([c1, c5, c10, local_count], dtype=torch.float32, device=local_rank)

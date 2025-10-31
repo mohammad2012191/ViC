@@ -26,27 +26,48 @@ conda activate vote-in-context-env
 3. **Video Directory**: Folder containing video files all are mp4 format
 4. **Subtitle JSON** (optional): JSON file with videos ids and subtitles
 
-##  ViC Usage
+## ViC Usage Guide
 
-### Text-to-Video Retrieval (Ensemble Mode M>1)
+### Text-to-Video Retrieval (T2V)
+
 ```bash
-torchrun --nproc_per_node=4 Msrvtt_activitynet_didemo_code\ensemble_wrapper_msrvtt_activitynet_didemo_t2v.py \
-  --sim_paths Similarity_Matrices\clip4clip_msrvtt.npy Similarity_Matrices\GRAM_msrvtt.npy Similarity_Matrices\InternVideo2_msrvtt.npy \
-  --csv_path Groud_Truth\descs_ret_test_msrvtt.csv \
+torchrun --nproc_per_node=4 Scripts\ensemble_wrapper.py \
+  --retrieval_mode t2v \
+  --sim_paths Similarity_Matrices\InternVideo2_msrvtt.npy Similarity_Matrices\GRAM_msrvtt.npy \
+  --csv_path descs_ret_test_msrvtt.csv \
   --video_dir MSRVTT \
   --num_images 14 \
   --model_name OpenGVLab/InternVL3_5-38B \
   --grid_size 3 \
   --ensemble_mode ViC_duplicate \
-  2>&1 | tee logs/msrvtt_t2v_ensemble.log
+  --use_subs \
+  --subtitle_json msrvtt_subtitles.json \
+  2>&1 | tee logs/msrvtt_t2v_with_subs.log
 ```
 
-### Video-to-Text Retrieval (Ensemble Mode M>1)
 
 ```bash
-torchrun --nproc_per_node=4 Msrvtt_activitynet_didemo_code\ensemble_wrapper_msrvtt_activitynet_didemo_v2t.py \
-  --sim_paths Similarity_Matrices\clip4clip_msrvtt.npy Similarity_Matrices\GRAM_msrvtt.npy Similarity_Matrices\InternVideo2_msrvtt.npy \
-  --csv_path Groud_Truth\descs_ret_test_msrvtt.csv \
+torchrun --nproc_per_node=4 Scripts\ensemble_wrapper.py \
+  --retrieval_mode t2v \
+  --sim_paths Similarity_Matrices\InternVideo2_msrvtt.npy  \
+  --csv_path descs_ret_test_msrvtt.csv \
+  --video_dir MSRVTT \
+  --num_images 14 \
+  --model_name OpenGVLab/InternVL3_5-38B \
+  --grid_size 3 \
+  --ensemble_mode none \
+  2>&1 | tee logs/msrvtt_t2v_single.log
+```
+
+
+## Video-to-Text Retrieval (V2T)
+
+
+```bash
+torchrun --nproc_per_node=4 Scripts\ensemble_wrapper.py \
+  --retrieval_mode v2t \
+  --sim_paths  Similarity_Matrices\InternVideo2_msrvtt.npy Similarity_Matrices\GRAM_msrvtt.npy Similarity_Matrices\clip4clip_msrvtt.npy \
+  --csv_path descs_ret_test_msrvtt.csv \
   --video_dir MSRVTT \
   --num_captions 20 \
   --model_name OpenGVLab/InternVL3_5-38B \
@@ -54,65 +75,58 @@ torchrun --nproc_per_node=4 Msrvtt_activitynet_didemo_code\ensemble_wrapper_msrv
   --ensemble_mode ViC_duplicate \
   2>&1 | tee logs/msrvtt_v2t_ensemble.log
 ```
-### With Subtitles
+
 
 ```bash
-torchrun --nproc_per_node=4 Msrvtt_activitynet_didemo_code\ensemble_wrapper_msrvtt_activitynet_didemo_t2v.py \
-  --sim_paths Similarity_Matrices\clip4clip_msrvtt.npy Similarity_Matrices\GRAM_msrvtt.npy Similarity_Matrices\InternVideo2_msrvtt.npy \
-  --csv_path Groud_Truth\descs_ret_test_msrvtt.csv \
+torchrun --nproc_per_node=4 Scripts\ensemble_wrapper.py \
+  --retrieval_mode v2t \
+  --sim_paths Similarity_Matrices\InternVideo2_msrvtt.npy Similarity_Matrices\GRAM_msrvtt.npy \
+  --csv_path descs_ret_test_msrvtt.csv \
   --video_dir MSRVTT \
-  --num_images 14 \
+  --num_captions 20 \
   --model_name OpenGVLab/InternVL3_5-38B \
   --grid_size 3 \
   --ensemble_mode ViC_duplicate \
   --use_subs \
-  --subtitle_json Subtitles\msrvtt_subtitles.json \
-  2>&1 | tee logs/msrvtt_t2v_with_subs.log
+  --subtitle_json msrvtt_subtitles.json \
+  2>&1 | tee logs/msrvtt_v2t_with_subs.log
 ```
 
-### Single Similarity Matrix Mode
+## Configuration Parameters
 
-For single similarity matrix (ViC Reranking M=1):
+### Required Arguments
 
-```bash
-torchrun --nproc_per_node=4 Msrvtt_activitynet_didemo_code\wrapper_msrvtt_activitynet_didemo_t2v.py \
-  --sim_path Similarity_Matrices\clip4clip_msrvtt.npy \
-  --csv_path Groud_Truth\descs_ret_test_msrvtt.csv \
-  --video_dir MSRVTT \
-  --num_images 14 \
-  --model_name OpenGVLab/InternVL3_5-38B \
-  --grid_size 3 \
-  2>&1 | tee logs/msrvtt_t2v_single.log
-```
+| Parameter | Description | Example |
+|-----------|-------------|---------|
+| `--retrieval_mode` | Task type: `t2v` or `v2t` | `t2v` |
+| `--sim_paths` | List of similarity matrix paths | `clip4clip.npy GRAM.npy` |
+| `--csv_path` | Path to CSV with metadata | `descs_ret_test_msrvtt.csv` |
+| `--video_dir` | Directory containing videos | `MSRVTT` |
+| `--model_name` | InternVL model variant | `OpenGVLab/InternVL3_5-38B` |
+| `--grid_size` | Frame sampling grid size | `3` (for 3×3) |
 
+### Mode-Specific Arguments
 
-## ⚙️ Configuration Options
+| Parameter | Mode | Description | Example |
+|-----------|------|-------------|---------|
+| `--num_images` | T2V | Number of video candidates | `14` |
+| `--num_captions` | V2T | Number of text candidates | `20` |
 
-### Text-to-Video (T2V) Parameters
+### Optional Arguments
 
-| Parameter | Description | Default | Example |
+| Parameter | Description | Default | Options |
 |-----------|-------------|---------|---------|
-| `--sim_paths` | List of similarity matrix paths (Ensemble Mode M>1) | Required | `clip4clip.npy GRAM.npy` |
-| `--sim_path` | Single similarity matrix path (ViC Reranking M=1) | Required | `clip4clip.npy` |
-| `--csv_path` | Path to CSV with video metadata | Required | `descs_ret_test_msrvtt.csv` |
-| `--video_dir` | Directory containing videos | Required | `MSRVTT` |
-| `--num_images` | Number of video candidates to rerank | Required | `14` |
-| `--model_name` | InternVL variant name (8B, 14B, 38B) | Required | `OpenGVLab/InternVL3_5-38B` |
-| `--grid_size` | Grid size for frame sampling | Required | `3` (for 3×3 grid) |
-| `--ensemble_mode` | Ensemble strategy  | `ViC_duplicate` |  (`ViC_duplicate`, `ViC_unique`, `none`) |
-| `--use_subs` | Enable subtitle usage | `False` | (True/False) |
+| `--ensemble_mode` | Ensemble strategy | `ViC_duplicate` | `ViC_duplicate`, `ViC_unique`, `none` |
+| `--use_subs` | Enable subtitles | `False` | Flag (no value) |
 | `--subtitle_json` | Path to subtitle JSON | `None` | `msrvtt_subtitles.json` |
 
-### Video-to-Text (V2T) Parameters
+## Notes
 
-Same as T2V, except:
-- Use `--num_captions` instead of `--num_images`
+- **Order matters**: Similarity matrix paths order matters
+- **GPU count**: Adjust `--nproc_per_node` based on available GPUs
 
 
 ## Baseline Usage
-
-
-### Text-to-Video Retrieval (CombSum)
 
 ```bash
 python wrapper_baseline.py \
