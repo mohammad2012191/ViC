@@ -21,16 +21,16 @@ conda activate vote-in-context-env
 
 ## Required Data
 
-1. **CSV File**: Contains video metadata with columns: `key`, `vid_key`, `video_id`, `sentence`
-2. **Similarity Matrices**: Pre-computed `.npy` files from retrieval models (e.g., CLIP4Clip, GRAM, InternVideo2)
+1. **CSV File**: Contains video metadata with columns: `video_id`, `sentence`
+2. **Similarity Matrices**: Pre-computed `.npy` files from retrieval models (e.g., CLIP4Clip, VAST, GRAM, InternVideo2)
 3. **Video Directory**: Folder containing video files all are mp4 format
-4. **Subtitle JSON** (optional): JSON file with video subtitles
+4. **Subtitle JSON** (optional): JSON file with videos ids and subtitles
 
 ##  ViC Usage
 
-### Text-to-Video Retrieval (Ensemble Mode)
+### Text-to-Video Retrieval (Ensemble Mode M>1)
 ```bash
-torchrun --nproc_per_node=3 Msrvtt_activitynet_didemo_code\ensemble_wrapper_msrvtt_activitynet_didemo_t2v.py \
+torchrun --nproc_per_node=4 Msrvtt_activitynet_didemo_code\ensemble_wrapper_msrvtt_activitynet_didemo_t2v.py \
   --sim_paths Similarity_Matrices\clip4clip_msrvtt.npy Similarity_Matrices\GRAM_msrvtt.npy Similarity_Matrices\InternVideo2_msrvtt.npy \
   --csv_path Groud_Truth\descs_ret_test_msrvtt.csv \
   --video_dir MSRVTT \
@@ -41,10 +41,10 @@ torchrun --nproc_per_node=3 Msrvtt_activitynet_didemo_code\ensemble_wrapper_msrv
   2>&1 | tee logs/msrvtt_t2v_ensemble.log
 ```
 
-### Video-to-Text Retrieval (Ensemble Mode)
+### Video-to-Text Retrieval (Ensemble Mode M>1)
 
 ```bash
-torchrun --nproc_per_node=3 Msrvtt_activitynet_didemo_code\ensemble_wrapper_msrvtt_activitynet_didemo_v2t.py \
+torchrun --nproc_per_node=4 Msrvtt_activitynet_didemo_code\ensemble_wrapper_msrvtt_activitynet_didemo_v2t.py \
   --sim_paths Similarity_Matrices\clip4clip_msrvtt.npy Similarity_Matrices\GRAM_msrvtt.npy Similarity_Matrices\InternVideo2_msrvtt.npy \
   --csv_path Groud_Truth\descs_ret_test_msrvtt.csv \
   --video_dir MSRVTT \
@@ -54,25 +54,10 @@ torchrun --nproc_per_node=3 Msrvtt_activitynet_didemo_code\ensemble_wrapper_msrv
   --ensemble_mode ViC_duplicate \
   2>&1 | tee logs/msrvtt_v2t_ensemble.log
 ```
-
-### Single Similarity Matrix Mode
-
-For single similarity matrix (no ensemble):
-
-```bash
-torchrun --nproc_per_node=3 Msrvtt_activitynet_didemo_code\wrapper_msrvtt_activitynet_didemo_t2v.py \
-  --sim_path Similarity_Matrices\clip4clip_msrvtt.npy \
-  --csv_path Groud_Truth\descs_ret_test_msrvtt.csv \
-  --video_dir MSRVTT \
-  --num_images 14 \
-  --model_name OpenGVLab/InternVL3_5-38B \
-  --grid_size 3 \
-  2>&1 | tee logs/msrvtt_t2v_single.log
-```
 ### With Subtitles
 
 ```bash
-torchrun --nproc_per_node=3 Msrvtt_activitynet_didemo_code\ensemble_wrapper_msrvtt_activitynet_didemo_t2v.py \
+torchrun --nproc_per_node=4 Msrvtt_activitynet_didemo_code\ensemble_wrapper_msrvtt_activitynet_didemo_t2v.py \
   --sim_paths Similarity_Matrices\clip4clip_msrvtt.npy Similarity_Matrices\GRAM_msrvtt.npy Similarity_Matrices\InternVideo2_msrvtt.npy \
   --csv_path Groud_Truth\descs_ret_test_msrvtt.csv \
   --video_dir MSRVTT \
@@ -85,21 +70,37 @@ torchrun --nproc_per_node=3 Msrvtt_activitynet_didemo_code\ensemble_wrapper_msrv
   2>&1 | tee logs/msrvtt_t2v_with_subs.log
 ```
 
+### Single Similarity Matrix Mode
+
+For single similarity matrix (ViC Reranking M=1):
+
+```bash
+torchrun --nproc_per_node=4 Msrvtt_activitynet_didemo_code\wrapper_msrvtt_activitynet_didemo_t2v.py \
+  --sim_path Similarity_Matrices\clip4clip_msrvtt.npy \
+  --csv_path Groud_Truth\descs_ret_test_msrvtt.csv \
+  --video_dir MSRVTT \
+  --num_images 14 \
+  --model_name OpenGVLab/InternVL3_5-38B \
+  --grid_size 3 \
+  2>&1 | tee logs/msrvtt_t2v_single.log
+```
+
+
 ## ⚙️ Configuration Options
 
 ### Text-to-Video (T2V) Parameters
 
 | Parameter | Description | Default | Example |
 |-----------|-------------|---------|---------|
-| `--sim_paths` | List of similarity matrix paths (ensemble mode) - the order matters for ViC_duplicate and ViC_unique | Required | `clip4clip.npy GRAM.npy` |
-| `--sim_path` | Single similarity matrix path | Required | `clip4clip.npy` |
+| `--sim_paths` | List of similarity matrix paths (Ensemble Mode M>1) | Required | `clip4clip.npy GRAM.npy` |
+| `--sim_path` | Single similarity matrix path (ViC Reranking M=1) | Required | `clip4clip.npy` |
 | `--csv_path` | Path to CSV with video metadata | Required | `descs_ret_test_msrvtt.csv` |
 | `--video_dir` | Directory containing videos | Required | `MSRVTT` |
 | `--num_images` | Number of video candidates to rerank | Required | `14` |
-| `--model_name` | InternVL model name | Required | `OpenGVLab/InternVL3_5-38B` |
+| `--model_name` | InternVL variant name (8B, 14B, 38B) | Required | `OpenGVLab/InternVL3_5-38B` |
 | `--grid_size` | Grid size for frame sampling | Required | `3` (for 3×3 grid) |
-| `--ensemble_mode` | Ensemble strategy | `ViC_duplicate` |  `ViC_duplicate`, `ViC_unique`, `none` |
-| `--use_subs` | Enable subtitle usage | `False` | flag |
+| `--ensemble_mode` | Ensemble strategy  | `ViC_duplicate` |  (`ViC_duplicate`, `ViC_unique`, `none`) |
+| `--use_subs` | Enable subtitle usage | `False` | (True/False) |
 | `--subtitle_json` | Path to subtitle JSON | `None` | `msrvtt_subtitles.json` |
 
 ### Video-to-Text (V2T) Parameters
@@ -153,28 +154,3 @@ python wrapper_baseline.py \
 | Parameter | Description | Default | Methods | Example |
 |-----------|-------------|---------|---------|---------|
 | `--k` | RRF constant (rank offset parameter) | `60` | RRF only | `100` |
-
-
-## Using Hard-Coded Versions
-
-For specific model and dataset combinations, hard-coded wrapper scripts are available that don't require command-line arguments.
-
-### VATEX Dataset
-```bash
-torchrun --nproc_per_node=2 --master_port=29501 Vatex_code\VATEX_Wrapper_InternVL3_5_38B_grid3x3_VAST_t2v.py \
-  2>&1 | tee logs/VATEX_InternVL3_5_38B_grid3x3_VAST_t2v.log
-```
-
-### Qwen Model (MSRVTT Dataset)
-```bash
-torchrun --nproc_per_node=2 --master_port=29501 Qwen3_VL_30B_A3B_Instruct_grid_InternVideo2_msrvtt\Wrapper_Qwen3_VL_30B_A3B_Instruct_grid3x3_InternVideo2_msrvtt_t2v_30_grids.py \
-  2>&1 | tee logs/Qwen3_VL_30B_A3B_Instruct_grid3x3_InternVideo2_msrvtt_t2v_30_grids.log
-```
-
-### Gemma Model (MSRVTT Dataset)
-```bash
-torchrun --nproc_per_node=2 --master_port=29501 Gemma_3_27b_it_grid_InternVideo2_msrvtt_code\Wrapper_Gemma_3_27b_it_grid3x3_InternVideo2_msrvtt_v2t_20_captions.py \
-  2>&1 | tee logs/Gemma_3_27b_it_grid3x3_InterVideo2_msrvtt_v2t_20_caption.log
-```
-
-**Note**: These scripts have all parameters (paths, model names, grid sizes, etc.) configured internally. Simply run the command without additional arguments. More versions are available inside each folder and can be configured there to use new paths etc.
