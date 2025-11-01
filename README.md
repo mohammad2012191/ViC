@@ -124,12 +124,13 @@ torchrun --nproc_per_node=4 Scripts\ensemble_wrapper.py \
 
 - **Order matters**: Similarity matrix paths order matters
 - **GPU count**: Adjust `--nproc_per_node` based on available GPUs
+- **VATEX**: When working with the VATEX dataset you need to use VATEX_wrapper.py instead.
 
 
 ## Baseline Usage
 
 ```bash
-python wrapper_baseline.py \
+python Scripts\wrapper_baseline.py \
   --method combsum \
   --mode t2v \
   --sim_paths Similarity_Matrices\clip4clip_msrvtt.npy Similarity_Matrices\GRAM_msrvtt.npy Similarity_Matrices\InternVideo2_msrvtt.npy \

@@ -286,14 +286,6 @@ class VLMWorker:
                             chosen.append(idx); seen.add(idx)
                             if len(chosen) >= top_k:
                                 return np.asarray(chosen, dtype=np.int64)
-            # still not enough unique? fill by soft vote fallback
-            sv = self._select_candidates_from_ensembles(row_or_col_idx, mats, top_k*2, mode="soft", weights=weights)
-            for idx in sv:
-                if idx not in seen:
-                    chosen.append(int(idx)); seen.add(int(idx))
-                if len(chosen) >= top_k:
-                    break
-            return np.asarray(chosen[:top_k], dtype=np.int64)
     
         raise ValueError(f"Unknown ensemble mode: {mode}")
 
@@ -561,17 +553,8 @@ class VLMWorker:
                 for mat in sim_mats:
                     scores_list.append(mat[:, vid_col].astype(np.float32, copy=False))
                 
-                # Use soft ensemble for v2t (combine scores)
-                if Config.ensemble_mode == "soft":
-                    ws = np.asarray(Config.ensemble_weights, dtype=np.float32) if Config.ensemble_weights is not None else np.ones(len(scores_list), dtype=np.float32)
-                    ws = ws / (ws.sum() + 1e-8)
-                    scores_captions = np.zeros_like(scores_list[0], dtype=np.float32)
-                    for w, s in zip(ws, scores_list):
-                        scores_captions += w * self._row_minmax(s)
-                else:
-                    # For hard modes in v2t, just use first matrix for now
-                    # (hard modes are less applicable to v2t multi-positive scenario)
-                    scores_captions = scores_list[0]
+
+                scores_captions = scores_list[0]
             else:
                 # Single matrix or no ensemble
                 scores_captions = sim_matrix[:, vid_col].astype(np.float32, copy=False)
