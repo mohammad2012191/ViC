@@ -13,6 +13,7 @@ import torchvision.transforms as T
 from torchvision.transforms.functional import InterpolationMode
 from transformers import AutoTokenizer, AutoModel
 import bitsandbytes as bnb
+from collections import defaultdict
 
 
 warnings.filterwarnings("ignore", message="The use of `x.T` on tensors")
@@ -22,11 +23,17 @@ warnings.filterwarnings("ignore", message="`torch.cuda.amp.autocast")
 # CONFIG + CONSTANTS
 #####################################################
 class Config:
-    num_images = 14  # how many videos we select from similarity row 
-    video_dir = "VATEX/videos_segments_test_mp4"
-    ensemble_mode = "ViC_duplicate"      #  "ViC_duplicate" | "ViC_unique" | None
-    ensemble_weights = None     # e.g., [0.5, 0.3, 0.2]; same len as # of sim_mats
-    per_model_topk = 4          # k picked from each system when using hard_* modes
+    # Will be set from command line arguments
+    num_images = None      # for t2v mode
+    num_captions = None    # for v2t mode
+    video_dir = None
+    ensemble_mode = None
+    ensemble_weights = None
+    per_model_topk = 4
+    grid_size = 3
+    model_name = None
+    use_subs = False
+    subtitle_json = None
 
 
 #####################################################
@@ -38,13 +45,11 @@ class VLMWorker:
         self.gpu_id = gpu_id
         torch.cuda.set_device(gpu_id)
 
-        # Model name
-        model_name = "OpenGVLab/InternVL3_5-38B"
         # Load tokenizer
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True, use_fast=False, cache_dir="./models")
+        self.tokenizer = AutoTokenizer.from_pretrained(Config.model_name, trust_remote_code=True, use_fast=False, cache_dir="./models")
         # Load model
         self.model = AutoModel.from_pretrained(
-            model_name,
+            Config.model_name,
             torch_dtype=torch.bfloat16,
             low_cpu_mem_usage=True,
             trust_remote_code=True,
@@ -55,10 +60,16 @@ class VLMWorker:
 
         # Build transform once
         self.transform = self._build_transform()
+
+        # Load subtitles if needed
+        if Config.use_subs and Config.subtitle_json:
+            self.subs = self._load_subtitles(Config.subtitle_json)
+        else:
+            self.subs = {}
+        
         self._column_videos = None
 
         
-        # self.subs = self._load_subtitles("vatex_subtitles.json")
         
     def _load_subtitles(self, path):
         import json
@@ -74,7 +85,7 @@ class VLMWorker:
             if vid:
                 out[vid] = sub
         return out
-
+        
     @staticmethod
     def _build_transform(input_size=448):
         IMAGENET_MEAN = (0.485, 0.456, 0.406)
@@ -90,7 +101,7 @@ class VLMWorker:
     # Image Preprocessing
     #####################################################
 
-    def get_first_frame(self, video_path, grid_size=3):
+    def get_first_frame(self, video_path, grid_size=None):
         """
         Sample grid_size^2 frames uniformly from the given video.
         Each sub-frame is resized to floor(448/grid_size) x floor(448/grid_size).
@@ -101,6 +112,8 @@ class VLMWorker:
                            The final image is always 448x448.
         :return: A PIL Image of size 448x448.
         """
+        if grid_size is None:
+            grid_size = Config.grid_size
         import numpy as np
     
         cap = cv2.VideoCapture(video_path)
@@ -230,7 +243,7 @@ class VLMWorker:
         return (x - mn) / (mx - mn)
 
     
-    def _select_candidates_from_ensembles(self, row_or_col_idx, sim_mats, top_k, mode="ViC_unique", weights=None):
+    def _select_candidates_from_ensembles(self, row_or_col_idx, sim_mats, top_k, mode="ViC_duplicate", weights=None):
         """
         sim_mats:
           - single np.ndarray of shape (Q, N)  -> we take sim_mats[row_or_col_idx]
@@ -246,9 +259,8 @@ class VLMWorker:
         if len(mats) == 1 or mode in (None, "", "none"):
             return np.argsort(-rows[0])[:top_k]
     
-
         # rank lists per system (descending)
-        per_k = getattr(Config, "per_model_topk", 4)
+        per_k = Config.per_model_topk
         ranked = [np.argsort(-r)[:max(top_k, per_k)] for r in rows]
     
         if mode == "ViC_duplicate":
@@ -274,13 +286,21 @@ class VLMWorker:
                             chosen.append(idx); seen.add(idx)
                             if len(chosen) >= top_k:
                                 return np.asarray(chosen, dtype=np.int64)
-
+            # still not enough unique? fill by soft vote fallback
+            sv = self._select_candidates_from_ensembles(row_or_col_idx, mats, top_k*2, mode="soft", weights=weights)
+            for idx in sv:
+                if idx not in seen:
+                    chosen.append(int(idx)); seen.add(int(idx))
+                if len(chosen) >= top_k:
+                    break
+            return np.asarray(chosen[:top_k], dtype=np.int64)
+    
         raise ValueError(f"Unknown ensemble mode: {mode}")
 
     
 
     #####################################################
-    # Reranking for one query
+    # Reranking for T2V (text-to-video)
     #####################################################
     def rerank_top_videos(
         self,
@@ -290,9 +310,9 @@ class VLMWorker:
         """
         Given a user query string and a list of video paths,
         fetch first frames, build patches, call model.chat to rerank.
-        Return new ranking + recall metrics if we know the ground-truth ID.
+        Return new ranking.
         """
-        # Load each video’s first frame, transform
+        # Load each video's first frame, transform
         images_pixel_values = []
         num_patches_list = []
         for vid_path in video_paths:
@@ -304,15 +324,15 @@ class VLMWorker:
         # Single big batch dimension
         pixel_values = torch.cat(images_pixel_values, dim=0).to(torch.bfloat16)
 
-        # # Build prompt for <num_images> images
+        # Build prompt for <num_images> images
         num_images = len(video_paths)
         prompt_lines = []
         for i in range(num_images):
             prompt_lines.append(f"Image-{i+1}: <image>")
-            # vid_id = os.path.splitext(os.path.basename(video_paths[i]))[0]
-            # sub = self.subs.get(vid_id, "")
-            # if sub:
-            #     prompt_lines.append(f"Subtitle-{i+1}: {sub}")
+            vid_id = os.path.splitext(os.path.basename(video_paths[i]))[0]
+            sub = self.subs.get(vid_id, "")
+            if sub:
+                prompt_lines.append(f"Subtitle-{i+1}: {sub}")
         # existing instruction line stays the same:
         prompt_lines.append(
             f"Given the user query: \"{query_text}\", rank these {num_images} images from most to least relevant "
@@ -341,6 +361,62 @@ class VLMWorker:
         ranking = self.parse_ranking_from_response(response, num_images)
         return ranking
 
+    #####################################################
+    # Reranking for V2T (video-to-text)
+    #####################################################
+    def rerank_top_captions(self, query_patches, text_candidates, query_video_id):
+        """
+        Given a single *video query* (query_patches) and a list of text candidates,
+        pass them to model.chat for re-ranking.
+        Return a new ranking: e.g. [2,1,4,3,...] meaning text #2 is most relevant, etc.
+        """
+        num_captions = len(text_candidates)
+    
+
+        prompt_lines = []
+        
+        # Add the query video
+        prompt_lines.append("Query-Video: <image>")
+        
+        # In rerank_top_captions, right after this line:
+        query_subtitle = self.subs.get(query_video_id, "")
+        if query_subtitle:
+            prompt_lines.append(f"Query-Subtitle: {query_subtitle}")
+        
+        # Add text candidates
+        for i, text_str in enumerate(text_candidates, start=1):
+            prompt_lines.append(f"Candidate-{i}: {text_str}")
+    
+        prompt_lines.append(
+            f"Given the user query (above video and subtitle) and the {num_captions} text candidates, "
+            f"rank these candidates from most to least relevant to the video. "
+            f"Output a list like [1,3,2,...,{num_captions}] (just an example). "
+            f"Output only the {num_captions}-ranked-elements list instantly."
+        )
+    
+        final_prompt = "\n".join(prompt_lines)
+    
+        # We feed the video patches as pixel_values, and the prompt that enumerates the text
+        # The model needs to interpret <image> as the "query" and the text lines as candidates.
+        generation_config = dict(max_new_tokens=256, do_sample=False)
+        try:
+            response = self.model.chat(
+                self.tokenizer,
+                query_patches.to(f"cuda:{self.gpu_id}"),
+                final_prompt,
+                generation_config,
+                num_patches_list=[query_patches.size(0)]  # single "image" with multiple patches
+            )
+        except Exception as e:
+            print(f"[GPU {self.gpu_id}] Error in rerank_top_captions: {e}")
+            # fallback
+            response = "[" + ",".join(str(i) for i in range(1, num_captions + 1)) + "]"
+    
+        # parse the new ranking
+        return self.parse_ranking_from_response(response, num_captions)
+
+
+
     def parse_ranking_from_response(self, response_text, num_items):
         """
         E.g. parse "[1,3,2,5,4]".
@@ -367,142 +443,170 @@ class VLMWorker:
         return list(range(1, num_items + 1))
 
     #####################################################
-    # The main loop for data slice
+    # The main loop for T2V data slice
     #####################################################
-    # def process_data_slice(self, data_slice, df_rows, sim_mats  ):
-    #     """
-    #     For each item in data_slice (these are row indices):
-    #       1. We'll get the top K=Config.num_images from sim_matrix[row_i].
-    #       2. We'll fetch the corresponding video paths.
-    #       3. We'll run rerank_top_videos(...) 
-    #       4. We'll compute recall stats if there's a ground-truth notion
-    #          (like "did we find row_i among the top re-ranked?").
+    def process_data_slice_t2v(self, data_slice, df_rows, sim_mats):
+        """
+        Text-to-video retrieval mode.
+        sim_matrix: shape (N, N) or (T, V) with similarities.
+        """
+        n_items = len(data_slice)
+        count_recall_1 = 0
+        count_recall_5 = 0
+        count_recall_10 = 0
 
-    #     data_slice: list of row indices (the CSV row indices).
-    #     df_rows: the entire DataFrame rows (key, vid_key, video_id, sentence).
-    #     sim_matrix: shape (N, N) with similarities.
-    #     """
-    #     n_items = len(data_slice)
-    #     count_recall_1 = 0
-    #     count_recall_5 = 0
-    #     count_recall_10 = 0
-
-    #     for idx in tqdm(data_slice, desc=f"[GPU {self.gpu_id}] Processing"):
-    #         # user query
-    #         user_query = df_rows["sentence"][idx]
-    #         ground_truth_video_id = df_rows["video_id"][idx]
-            
-            
-    #         # Ensembling 
-    #         top_indices = self._select_candidates_from_ensembles(
-    #             idx, sim_mats, top_k=Config.num_images,
-    #             mode=getattr(Config, "ensemble_mode", None),
-    #             weights=getattr(Config, "ensemble_weights", None)
-    #             )
-
-
-    #         # 2) get the actual video_id for each top index, build path
-    #         #    The 'top_frames' notion -> list of (some_id, score).
-    #         #    We actually just need the video path
-    #         video_paths = []
-    #         for row_j in top_indices:
-    #             vid_j = df_rows["video_id"][row_j]
-    #             path_j = os.path.join(Config.video_dir, f"{vid_j}.mp4")
-    #             video_paths.append(path_j)
-
-    #         # 3) rerank 
-    #         ranking = self.rerank_top_videos(user_query, video_paths)
-    #         # ranking is e.g. [1,3,2,4,5,...], telling us the order to reorder 'video_paths'.
-
-    #         # reorder them
-    #         reordered_paths = [video_paths[r-1] for r in ranking]
-    #         predicted_vid_ids = [os.path.basename(vp).replace(".mp4","") for vp in reordered_paths]
-
-    #         # 4) measure rank of ground_truth_video_id among predicted_vid_ids
-    #         #    if it's present
-    #         if ground_truth_video_id in predicted_vid_ids:
-    #             rankpos = predicted_vid_ids.index(ground_truth_video_id) + 1
-    #         else:
-    #             rankpos = len(predicted_vid_ids) + 1
-
-    #         # recall counts
-    #         if rankpos <= 1:
-    #             count_recall_1 += 1
-    #         if rankpos <= 5:
-    #             count_recall_5 += 1
-    #         if rankpos <= 10:
-    #             count_recall_10 += 1
-
-    #     return count_recall_1, count_recall_5, count_recall_10, n_items
-
-
-    def process_data_slice(self, data_slice, df_rows, sim_mats):
-            """
-            ...
-            sim_matrix: shape (N, N) or (T, V) with similarities.
-            """
-            n_items = len(data_slice)
-            count_recall_1 = 0
-            count_recall_5 = 0
-            count_recall_10 = 0
-
-            sim_matrix = sim_mats[0]
-            # >>> detect rectangular matrix and lazily build column->video map
-            rectangular = (sim_matrix.ndim == 2 and sim_matrix.shape[1] != len(df_rows))
-            if rectangular and (self._column_videos is None):
-                # first-seen order of unique videos; must match column order used to build sim_matrix
-                vids = df_rows["video_id"].tolist()
-                self._column_videos = list(dict.fromkeys(vids))  # preserves order
-                if len(self._column_videos) != sim_matrix.shape[1]:
-                    print(f"[GPU {self.gpu_id}] WARNING: column_videos ({len(self._column_videos)}) "
-                          f"!= sim_matrix V ({sim_matrix.shape[1]}). Check alignment.")
+        sim_matrix = sim_mats[0]
+        # >>> detect rectangular matrix and lazily build column->video map
+        rectangular = (sim_matrix.ndim == 2 and sim_matrix.shape[1] != len(df_rows))
+        if rectangular and (self._column_videos is None):
+            # first-seen order of unique videos; must match column order used to build sim_matrix
+            vids = df_rows["video_id"].tolist()
+            self._column_videos = list(dict.fromkeys(vids))  # preserves order
+            if len(self._column_videos) != sim_matrix.shape[1]:
+                print(f"[GPU {self.gpu_id}] WARNING: column_videos ({len(self._column_videos)}) "
+                      f"!= sim_matrix V ({sim_matrix.shape[1]}). Check alignment.")
     
-            for idx in tqdm(data_slice, desc=f"[GPU {self.gpu_id}] Processing"):
-                user_query = df_rows["sentence"][idx]
-                ground_truth_video_id = df_rows["video_id"][idx]
+        for idx in tqdm(data_slice, desc=f"[GPU {self.gpu_id}] Processing t2v"):
+            user_query = df_rows["sentence"][idx]
+            ground_truth_video_id = df_rows["video_id"][idx]
     
-                # similarities_row = sim_matrix[idx]  # (N,) or (V,)
+            top_indices = self._select_candidates_from_ensembles(
+                idx, sim_mats, top_k=Config.num_images,
+                mode=Config.ensemble_mode,
+                weights=Config.ensemble_weights
+                )
     
-                # top_indices = np.argsort(-similarities_row)[:Config.num_images]
+            video_paths = []
+            if rectangular:
+                # >>> map column index -> video_id via unique column video list
+                for col_j in top_indices:
+                    vid_j = self._column_videos[col_j]
+                    path_j = os.path.join(Config.video_dir, f"{vid_j}.mp4")
+                    video_paths.append(path_j)
+            else:
+                # original square-matrix path (columns align with rows)
+                for row_j in top_indices:
+                    vid_j = df_rows["video_id"][row_j]
+                    path_j = os.path.join(Config.video_dir, f"{vid_j}.mp4")
+                    video_paths.append(path_j)
+    
+            # rerank
+            ranking = self.rerank_top_videos(user_query, video_paths)
+    
+            reordered_paths = [video_paths[r-1] for r in ranking]
+            predicted_vid_ids = [os.path.basename(vp).replace(".mp4","") for vp in reordered_paths]
+    
+            if ground_truth_video_id in predicted_vid_ids:
+                rankpos = predicted_vid_ids.index(ground_truth_video_id) + 1
+            else:
+                rankpos = len(predicted_vid_ids) + 1
+    
+            if rankpos <= 1:  count_recall_1  += 1
+            if rankpos <= 5:  count_recall_5  += 1
+            if rankpos <= 10: count_recall_10 += 1
+    
+        return count_recall_1, count_recall_5, count_recall_10, n_items
 
-                top_indices = self._select_candidates_from_ensembles(
-                    idx, sim_mats, top_k=Config.num_images,
-                    mode=getattr(Config, "ensemble_mode", None),
-                    weights=getattr(Config, "ensemble_weights", None)
-                    )
-    
-                video_paths = []
-                if rectangular:
-                    # >>> map column index -> video_id via unique column video list
-                    for col_j in top_indices:
-                        vid_j = self._column_videos[col_j]
-                        path_j = os.path.join(Config.video_dir, f"{vid_j}.mp4")
-                        video_paths.append(path_j)
+
+    #####################################################
+    # The main loop for V2T data slice
+    #####################################################
+    def process_data_slice_v2t(self, data_slice, df_rows, sim_mats):
+        """
+        v2t on VATEX (multi-positive):
+        - Query = a *video* (one eval per video)
+        - Candidates = captions (rows)
+        - Hit@K if ANY of the video's 10 captions appears in top-K
+        sim_matrix: expected shape (T, V) = (captions, videos)
+        """
+        sim_matrix = sim_mats[0]
+        T, V = sim_matrix.shape
+
+        # --- group all caption indices by video id (multi-positives) ---
+        vid_to_caps = defaultdict(list)
+        video_ids = df_rows["video_id"].astype(str).tolist()
+        for ci, v in enumerate(video_ids):
+            vid_to_caps[v].append(ci)
+
+        # ---- build a video->column index map (columns must match unique first-seen order) ---
+        # (This is the same assumption your t2v code already uses.)
+        column_videos = list(dict.fromkeys(video_ids))   # first-seen order of unique videos across caption rows
+        if len(column_videos) != V:
+            print(f"[GPU {self.gpu_id}] WARNING: V={V} but unique videos in CSV={len(column_videos)}")
+        vid2col = {v:i for i, v in enumerate(column_videos)}
+
+        seen_videos = set()   # ensure we evaluate each video once
+        count_recall_1 = count_recall_5 = count_recall_10 = 0
+        processed = 0
+
+        for idx in tqdm(data_slice, desc=f"[GPU {self.gpu_id}] Processing v2t"):
+            # Use the caption row to identify its video, but evaluate each video once
+            vid = video_ids[idx]
+            if vid in seen_videos:
+                continue
+            seen_videos.add(vid)
+            processed += 1
+
+            # Query column for this video
+            if vid not in vid2col:
+                # safety: skip if this video not present in matrix columns
+                continue
+            vid_col = vid2col[vid]
+
+            # Scores of ALL captions vs this video (column j)
+            # For ensembling in v2t, we need to get scores from all matrices
+            if Config.ensemble_mode and Config.ensemble_mode not in (None, "", "none") and len(sim_mats) > 1:
+                # Ensemble: get column from each matrix and combine
+                scores_list = []
+                for mat in sim_mats:
+                    scores_list.append(mat[:, vid_col].astype(np.float32, copy=False))
+                
+                # Use soft ensemble for v2t (combine scores)
+                if Config.ensemble_mode == "soft":
+                    ws = np.asarray(Config.ensemble_weights, dtype=np.float32) if Config.ensemble_weights is not None else np.ones(len(scores_list), dtype=np.float32)
+                    ws = ws / (ws.sum() + 1e-8)
+                    scores_captions = np.zeros_like(scores_list[0], dtype=np.float32)
+                    for w, s in zip(ws, scores_list):
+                        scores_captions += w * self._row_minmax(s)
                 else:
-                    # original square-matrix path (columns align with rows)
-                    for row_j in top_indices:
-                        vid_j = df_rows["video_id"][row_j]
-                        path_j = os.path.join(Config.video_dir, f"{vid_j}.mp4")
-                        video_paths.append(path_j)
-    
-                # rerank (your code currently falls back to identity)
-                ranking = self.rerank_top_videos(user_query, video_paths)
-    
-                reordered_paths = [video_paths[r-1] for r in ranking]
-                predicted_vid_ids = [os.path.basename(vp).replace(".mp4","") for vp in reordered_paths]
-    
-                if ground_truth_video_id in predicted_vid_ids:
-                    rankpos = predicted_vid_ids.index(ground_truth_video_id) + 1
-                else:
-                    rankpos = len(predicted_vid_ids) + 1
-    
-                if rankpos <= 1:  count_recall_1  += 1
-                if rankpos <= 5:  count_recall_5  += 1
-                if rankpos <= 10: count_recall_10 += 1
-    
-            return count_recall_1, count_recall_5, count_recall_10, n_items
+                    # For hard modes in v2t, just use first matrix for now
+                    # (hard modes are less applicable to v2t multi-positive scenario)
+                    scores_captions = scores_list[0]
+            else:
+                # Single matrix or no ensemble
+                scores_captions = sim_matrix[:, vid_col].astype(np.float32, copy=False)
 
-def run_distributed_inference(local_rank, data_slice, df_rows, sim_mats):
+            # Take top-K caption indices as candidates
+            top_indices = np.argsort(-scores_captions)[:Config.num_captions]
+
+            # Build text candidates and run your VLM reranker
+            text_candidates = [df_rows["sentence"][j] for j in top_indices]
+
+            # Prepare query video image/patches
+            video_path = os.path.join(Config.video_dir, f"{vid}.mp4")
+            query_img = self.get_first_frame(video_path, grid_size=Config.grid_size)
+            query_patches = self.load_image_intern(query_img, max_num=6).to(torch.bfloat16)
+
+            ranking = self.rerank_top_captions(query_patches, text_candidates, vid)
+
+            # Final ranked caption indices after VLM rerank
+            ranked_cap_idxs = [top_indices[r-1] for r in ranking]
+
+            # --- multi-positive eval: best (minimum) rank among the video's 10 captions ---
+            gt_caps = set(vid_to_caps[vid])  # the 10 ground-truth caption row indices for this video
+            hit_positions = [i for i, ci in enumerate(ranked_cap_idxs) if ci in gt_caps]
+            rankpos = (min(hit_positions) + 1) if hit_positions else (len(ranked_cap_idxs) + 1)
+
+            if rankpos <= 1:  count_recall_1  += 1
+            if rankpos <= 5:  count_recall_5  += 1
+            if rankpos <= 10: count_recall_10 += 1
+
+        return count_recall_1, count_recall_5, count_recall_10, processed
+
+
+
+
+def run_distributed_inference(local_rank, data_slice, df_rows, sim_mats, retrieval_mode):
     """
     Worker entry point for a given rank:
       1) Creates VLMWorker(local_rank).
@@ -510,5 +614,12 @@ def run_distributed_inference(local_rank, data_slice, df_rows, sim_mats):
       3) Returns partial recall counts + total_count.
     """
     worker = VLMWorker(local_rank)
-    c1, c5, c10, total = worker.process_data_slice(data_slice, df_rows, sim_mats)
+    
+    if retrieval_mode == "t2v":
+        c1, c5, c10, total = worker.process_data_slice_t2v(data_slice, df_rows, sim_mats)
+    elif retrieval_mode == "v2t":
+        c1, c5, c10, total = worker.process_data_slice_v2t(data_slice, df_rows, sim_mats)
+    else:
+        raise ValueError(f"Unknown retrieval_mode: {retrieval_mode}")
+    
     return c1, c5, c10, total
