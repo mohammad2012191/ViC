@@ -21,10 +21,10 @@ conda activate vote-in-context-env
 
 ## Required Data
 
-1. **CSV File**: Contains video metadata with columns: `video_id`, `sentence`
-2. **Similarity Matrices**: Pre-computed `.npy` files from retrieval models (e.g., CLIP4Clip, VAST, GRAM, InternVideo2)
-3. **Video Directory**: Folder containing video files all are mp4 format
-4. **Subtitle JSON** (optional): JSON file with videos ids and subtitles
+1. **CSV File**: Contains video metadata with columns: `video_id`, `sentence`, found inside Groud_Truth folder
+2. **Similarity Matrices**: Pre-computed `.npy` files from retrieval models (e.g., CLIP4Clip, VAST, GRAM, InternVideo2), found inside Similarity_Matrices folder
+3. **Video Directory**: Folder containing video files that are in mp4 format, found [here](https://drive.google.com/drive/folders/1HUYL_0UO_006Ux4xqoLoXANQCDH6iMt8)
+4. **Subtitle JSON** (optional): JSON file with videos ids and subtitles, found inside Subtitles folder
 
 ## ViC Usage Guide
 
