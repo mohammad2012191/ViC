@@ -45,7 +45,7 @@ modern VLMs into powerful zero-shot rerankers and fusers.
 ## 🎬 Overview
 
 <div align="center">
-  <img src="figure.png" width="800">
+  <img src="Figures/fig 1.png" width="800">
   <p><em>ViC: List-wise reranking and fusion as a reasoning task for a frozen Vision-Language Model (VLM).</em></p>
 </div>
 
