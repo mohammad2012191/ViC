@@ -36,7 +36,7 @@ where multi-retriever outputs are fused and re-ranked (ViC) to obtain the final 
 ## 🎞️ Results
 
 <div align="center">
-  <img src="Figures/fig 3.png" width="700">
+  <img src="Figures/fig 3.png" width="500">
   <p><em> (a) Effect of reranker scale (InternVL 3.5, 3×3 grid) on t2v Recall@1. (b) Impact of grid size on t2v performance, using
 InternVideo2-6B and InternVL 3.5-38B.</em></p>
 </div>
