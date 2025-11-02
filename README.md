@@ -6,10 +6,39 @@
 
 ---
 
-> **“Fusion by Reasoning, not by Formula.”**
->
-> *Vote-in-Context (ViC)* redefines multimodal retrieval by transforming a frozen Vision-Language Model (VLM) into a **universal, zero-shot reranker and fuser**.  
-> By serializing content and retriever metadata *into the model’s context*, ViC performs adaptive, list-wise reasoning—achieving **state-of-the-art zero-shot video retrieval** on multiple benchmarks.
+> **“Abstract”**
+In the retrieval domain, candidates’ fusion from heteroge-
+neous retrievers is a long-standing challenge, particularly
+for complex, multi-modal data such as videos. While typ-
+ical fusion techniques are training-free; they rely solely
+on rank or score signals, disregarding candidates’ repre-
+sentations. This work introduces Vote-in-Context (ViC), a
+generalized, training-free framework that re-thinks list-wise
+reranking and fusion as a zero-shot reasoning task for a
+Vision-Language Model (VLM). The core insight is to seri-
+alize both content evidence and retriever metadata directly
+within the VLM’s prompt, allowing the model to adap-
+tively weigh retriever consensus against visual–linguistic
+content. We demonstrate the generality of this framework
+by applying it to the challenging domain of cross-modal
+video retrieval. To this end, we introduce the S-Grid, a
+compact serialization map that represents each video as
+an image grid, optionally paired with subtitles to enable
+list-wise reasoning over video candidates. ViC is evalu-
+ated both as a single-list reranker, where it dramatically
+improves the precision of individual retrievers, and as an
+ensemble fuser, where it consistently outperforms strong
+baselines like CombSUM. Across video retrieval bench-
+marks including ActivityNet and VATEX, the framework
+establishes new state-of-the-art zero-shot retrieval perfor-
+mance, demonstrating its effectiveness in handling complex
+visual and temporal signals alongside text. In zero-shot
+settings, ViC achieves Recall@1 scores of 87.1% (t2v) /
+89.0% (v2t) on MSR-VTT and 99.6% (v2t) on VATEX, rep-
+resenting massive gains of up to +40 Recall@1 over pre-
+vious state-of-the-art baselines. We present ViC as a sim-
+ple, reproducible, and highly effective recipe for turning
+modern VLMs into powerful zero-shot rerankers and fusers.
 
 ---
 
