@@ -13,11 +13,8 @@
   <p><em> Left: R@1 for T2V/V2T on MSR-VTT, DiDeMo, VATEX, and ActivityNet versus strong baselines. Right: Qualitative example
 where multi-retriever outputs are fused and re-ranked (ViC) to obtain the final list.</em></p>
 </div>
----
-## 📰 News
--
--
--
+
+
 ---
 
 ## ✨ Highlights
