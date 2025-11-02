@@ -1,4 +1,4 @@
-# 🎥 Vote-in-Context (ViC): Turning VLMs into Robust Zero-Shot Ranked-List Fusers
+# Vote-in-Context (ViC): Turning VLMs into Robust Zero-Shot Ranked-List Fusers
 
 
 [![arXiv](https://img.shields.io/badge/arXiv-2508.18265-b31b1b)](https://arxiv.org/abs/)
@@ -6,7 +6,7 @@
 
 
 
-## 🎬 Overview
+##  Overview
 
 <div align="center">
   <img src="fig 1.png" width="1000">
@@ -17,7 +17,7 @@ where multi-retriever outputs are fused and re-ranked (ViC) to obtain the final 
 
 ---
 
-## ✨ Highlights
+##  Highlights
 
 -  **Unified, Training-Free Framework** — Converts any Vision-Language Model into a **content-aware reranker** and **fusion engine**.  
 -  **S-Grid Serialization** — Represents videos as compact image grids with optional subtitles.  
@@ -25,31 +25,12 @@ where multi-retriever outputs are fused and re-ranked (ViC) to obtain the final 
 -  **Plug-and-Play Integration** — Works seamlessly with CLIP4Clip, VAST, GRAM, InternVideo2, and more.
 ---
 
-## 🎞️ Methodology 
+##  Methodology 
 <div align="center">
   <img src="fig 2.png" width="1000">
   <p><em> Left: R@1 for T2V/V2T on MSR-VTT, DiDeMo, VATEX, and ActivityNet versus strong baselines. Right: Qualitative example
 where multi-retriever outputs are fused and re-ranked (ViC) to obtain the final list.</em></p>
 </div>
----
-
-1. **Multi-Retriever Input**  
-   Multiple off-the-shelf retrievers generate ranked lists (Top-K) of videos or captions for a given query (text or video).
-
-2. **Duplicate-Aware Interleaving**  
-   Merge the lists using a *round-robin, duplicate-preserving* fusion.  
-   - **Duplicates →** show agreement between retrievers  
-   - **Order →** retains individual retriever rank signals
-
-3. **Content Serialization (S-Grid)**  
-   Each video is converted into an **S-Grid** — a compact grid of uniformly sampled frames, optionally paired with subtitles — forming a single visual–textual representation.
-
-4. **VLM Reranking (Zero-Shot)**  
-   The serialized query and candidate S-Grids are passed to a frozen **Vision-Language Model (e.g., InternVL)**, which performs list-wise reasoning and outputs a refined ranked order.
-
-5. **Bidirectional Retrieval**  
-   - **Text → Video (t2v):** text query ranks candidate videos.  
-   - **Video → Text (v2t):** video query (S-Grid) ranks candidate captions.
 
 ---
 ## 🎞️ Results
@@ -62,8 +43,8 @@ InternVideo2-6B and InternVL 3.5-38B.</em></p>
 
 <div align="center">
   <img src="fig 4.png" width="1000">
-  <p><em> (a) Effect of reranker scale (InternVL 3.5, 3×3 grid) on t2v Recall@1. (b) Impact of grid size on t2v performance, using
-InternVideo2-6B and InternVL 3.5-38B.</em></p>
+  <p><em> Efficiency vs. Performance Trade-off. Time per query vs. Avg Recall@1 for t2v retrieval over the benchmarks MSR-VTT,
+DiDeMo and ActivityNet. Marker size represents model parameters. The Pareto frontier (dashed line) highlights optimal trade-offs.</em></p>
 </div>
 ---
 
