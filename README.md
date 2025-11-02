@@ -51,6 +51,65 @@ where multi-retriever outputs are fused and re-ranked (ViC) to obtain the final 
 -
 -
 
+<div align="center">
+  <img src="fig 2.png" width="1000">
+  <p><em> Left: R@1 for T2V/V2T on MSR-VTT, DiDeMo, VATEX, and ActivityNet versus strong baselines. Right: Qualitative example
+where multi-retriever outputs are fused and re-ranked (ViC) to obtain the final list.</em></p>
+</div>
+-
+
+## 🎞️ Methodology — Summary
+
+**Goal.** Turn a frozen Vision–Language Model (VLM) into a **training-free, list-wise reranker and fuser** that reasons jointly over content and retriever metadata.
+
+### 1) Candidate Assembly (Metadata-aware)
+- Input: \(M\) heterogeneous retrievers → ranked lists \(L_m(q)\).
+- Build a single candidate sequence \(C(q)\) of length \(K\) via **round-robin interleaving** with per-list depth \(k_{\max}=\lceil K/M \rceil\).
+- **Keep duplicates**: item multiplicity encodes **cross-list consensus**; position encodes **per-list rank**.
+
+### 2) Content Serialization (S-Grid)
+- Each video \(v\) → **S-Grid**: a compact \(s \times s\) grid of uniformly sampled frames + optional subtitles \(a_v\).
+- Purpose: supply **visual snapshots + textual cues** in one VLM-readable prompt, at **constant per-candidate cost**.
+
+### 3) VLM List-wise Reranking (Zero-shot)
+- Provide the VLM with: serialized query \(Q(q)\) and serialized candidates \(\{E(C_i)\}_{i=1}^K\) **plus** implicit metadata (rank, multiplicity) from \(C(q)\).
+- The VLM outputs a **permutation** \(\hat{\pi}\) → final fused ranking \(\widehat{R}(q)\).
+
+### 4) Tasks Covered
+- **Text→Video (t2v)**: \(Q(q)=q\) (text), candidates are video **S-Grids**.
+- **Video→Text (v2t)**: \(Q(q)=\) video **S-Grid** (+ subtitles), candidates are **text captions** (identity serialization).
+
+### 5) Special Case (Single-List, \(M=1\))
+- \(C(q)=\mathrm{Top}_K(L_1(q))\).
+- VLM operates as a **pure list-wise reranker** using only content evidence (no consensus metadata).
+
+### 6) Relation to Classical Fusion
+- **Soft Voting / CombSUM/CombMNZ**: score-level, needs comparable scores.
+- **RRF**: rank-level with hyperparameter \(k\).
+- **ViC**: **hyperparameter-free**, **modality-aware**, **content-aware**; leverages **both** evidence types (content + metadata) in a single reasoning pass.
+
+### 7) Efficiency
+- Per-query complexity: \(\mathcal{O}(K \cdot C_{\text{VLM}})\).
+- **Independent of raw video length** (thanks to S-Grid), enabling larger \(K\) within the VLM context window.
+
+---
+
+### 🔧 Minimal Algorithm Sketch
+
+1) **Assemble candidates**
+   - For each retriever \(m\): take \(\mathrm{Top}_{k_{\max}}(L_m)\).
+   - Interleave round-robin → sequence \(C(q)\) (preserve duplicates).
+
+2) **Serialize**
+   - t2v: \(Q(q)=q\); \(E(v)=(\text{S-Grid}(v), a_v)\).
+   - v2t: \(Q(q)=(\text{S-Grid}(v), a_v)\); \(E(t)=t\).
+
+3) **Rerank with VLM**
+   - Feed \(Q(q)\) + \(\{E(C_i)\}_{i=1}^K\) → get permutation \(\hat{\pi}\).
+   - Output \(\widehat{R}(q)=(C_{\hat{\pi}(1)},\dots,C_{\hat{\pi}(K)})\).
+
+**TL;DR:** ViC fuses **rank/multiplicity metadata** with **S-Grid content** inside a single VLM prompt, yielding a **training-free, zero-shot**, list-wise reranker/fuser for t2v and v2t. 
+-
 
 
 
