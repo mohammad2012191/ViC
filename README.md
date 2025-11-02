@@ -13,43 +13,21 @@
   <p><em> Left: R@1 for T2V/V2T on MSR-VTT, DiDeMo, VATEX, and ActivityNet versus strong baselines. Right: Qualitative example
 where multi-retriever outputs are fused and re-ranked (ViC) to obtain the final list.</em></p>
 </div>
-
-## 🧩 Abstract 
-
-- 🎯 **Challenge:** Fusing ranked candidates from heterogeneous retrievers remains difficult, especially in **multi-modal video retrieval**, where traditional rank/score-based methods ignore the candidates’ actual content.
-
-- 💡 **Core Idea:** *Vote-in-Context (ViC)* reframes list-wise reranking and fusion as a **zero-shot reasoning task** for a Vision-Language Model (VLM).
-
-- 🧠 **Approach:** ViC serializes both **content evidence** and **retriever metadata** directly within the VLM’s prompt, enabling adaptive weighting of retriever consensus and visual–linguistic signals.
-
-- 🧱 **S-Grid Representation:** Introduces the **S-Grid**, a compact serialization map that encodes each video as a grid of uniformly sampled frames (optionally with subtitles), making list-wise reasoning over videos feasible.
-
-- ⚙️ **Modes of Operation:**  
-  - *Single-List Reranker:* Enhances individual retrievers without fine-tuning.  
-  - *Ensemble Fuser:* Merges multiple retrievers’ ranked lists into a unified, content-aware fusion.
-
-- 🧩 **Performance:** Achieves state-of-the-art zero-shot retrieval on **MSR-VTT**, **DiDeMo**, **VATEX**, and **ActivityNet**.  
-  - Recall@1: **87.1% (t2v)** / **89.0% (v2t)** on MSR-VTT  
-  - Recall@1: **99.6% (v2t)** on VATEX  
-  - Gains up to **+40 Recall@1** over prior state-of-the-art baselines.
-
-- 🔓 **Reproducibility:**  
-  ViC is fully **training-free**, simple to reproduce, and effective for turning frozen VLMs into **powerful zero-shot rerankers and fusers**.
-
----
-
-## ✨ Highlights
-
-- 🔄 **Unified, Training-Free Framework** — Converts any Vision-Language Model into a **content-aware reranker** and **fusion engine**.  
-- 🧱 **S-Grid Serialization** — Represents videos as compact image grids with optional subtitles.  
-- 📈 **New Zero-Shot SOTA** — +40 Recall@1 improvement across major benchmarks.  
-- ⚙️ **Plug-and-Play Integration** — Works seamlessly with CLIP4Clip, VAST, GRAM, InternVideo2, and more.
-
 ---
 ## 📰 News
 -
 -
 -
+---
+
+## ✨ Highlights
+
+-  **Unified, Training-Free Framework** — Converts any Vision-Language Model into a **content-aware reranker** and **fusion engine**.  
+-  **S-Grid Serialization** — Represents videos as compact image grids with optional subtitles.  
+- **New Zero-Shot SOTA** — +40 Recall@1 improvement across major benchmarks.  
+-  **Plug-and-Play Integration** — Works seamlessly with CLIP4Clip, VAST, GRAM, InternVideo2, and more.
+---
+
 ## 🎞️ Methodology 
 <div align="center">
   <img src="fig 2.png" width="1000">
@@ -77,13 +55,20 @@ where multi-retriever outputs are fused and re-ranked (ViC) to obtain the final 
    - **Video → Text (v2t):** video query (S-Grid) ranks candidate captions.
 
 ---
+## 🎞️ Results
 
-**💡 Summary:**  
-ViC fuses heterogeneous retrievers, serializes multimodal content into S-Grids, and leverages a VLM for **training-free, zero-shot reranking** across both text→video and video→text retrieval tasks.
+<div align="center">
+  <img src="fig 3.png" width="1000">
+  <p><em> (a) Effect of reranker scale (InternVL 3.5, 3×3 grid) on t2v Recall@1. (b) Impact of grid size on t2v performance, using
+InternVideo2-6B and InternVL 3.5-38B.</em></p>
+</div>
 
-
-
-
+<div align="center">
+  <img src="fig 4.png" width="1000">
+  <p><em> (a) Effect of reranker scale (InternVL 3.5, 3×3 grid) on t2v Recall@1. (b) Impact of grid size on t2v performance, using
+InternVideo2-6B and InternVL 3.5-38B.</em></p>
+</div>
+---
 
 
 
