@@ -9,7 +9,7 @@
 ##  Overview
 
 <div align="center">
-  <img src="fig 1.png" width="1000">
+  <img src="Figures/fig 1.png" width="1000">
   <p><em> Left: R@1 for T2V/V2T on MSR-VTT, DiDeMo, VATEX, and ActivityNet versus strong baselines. Right: Qualitative example
 where multi-retriever outputs are fused and re-ranked (ViC) to obtain the final list.</em></p>
 </div>
@@ -27,7 +27,7 @@ where multi-retriever outputs are fused and re-ranked (ViC) to obtain the final 
 
 ##  Methodology 
 <div align="center">
-  <img src="fig 2.png" width="1000">
+  <img src="Figures/fig 2.png" width="1000">
   <p><em> Left: R@1 for T2V/V2T on MSR-VTT, DiDeMo, VATEX, and ActivityNet versus strong baselines. Right: Qualitative example
 where multi-retriever outputs are fused and re-ranked (ViC) to obtain the final list.</em></p>
 </div>
@@ -36,13 +36,13 @@ where multi-retriever outputs are fused and re-ranked (ViC) to obtain the final 
 ## 🎞️ Results
 
 <div align="center">
-  <img src="fig 3.png" width="1000">
+  <img src="Figures/fig 3.png" width="700">
   <p><em> (a) Effect of reranker scale (InternVL 3.5, 3×3 grid) on t2v Recall@1. (b) Impact of grid size on t2v performance, using
 InternVideo2-6B and InternVL 3.5-38B.</em></p>
 </div>
 
 <div align="center">
-  <img src="Figures/fig 4.png" width="1000">
+  <img src="Figures/fig 4.png" width="700">
   <p><em> Efficiency vs. Performance Trade-off. Time per query vs. Avg Recall@1 for t2v retrieval over the benchmarks MSR-VTT,
 DiDeMo and ActivityNet. Marker size represents model parameters. The Pareto frontier (dashed line) highlights optimal trade-offs.</em></p>
 </div>
