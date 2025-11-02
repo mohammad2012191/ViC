@@ -27,7 +27,7 @@ where multi-retriever outputs are fused and re-ranked (ViC) to obtain the final 
 
 ##  Methodology 
 <div align="center">
-  <img src="Figures/fig 2.png" width="1000">
+  <img src="Figures/fig 2.png" width="700">
   <p><em> Left: R@1 for T2V/V2T on MSR-VTT, DiDeMo, VATEX, and ActivityNet versus strong baselines. Right: Qualitative example
 where multi-retriever outputs are fused and re-ranked (ViC) to obtain the final list.</em></p>
 </div>
@@ -49,37 +49,25 @@ DiDeMo and ActivityNet. Marker size represents model parameters. The Pareto fron
 
 ---
 
+##  Prerequisites
+- Python **3.8+**
+- CUDA-compatible GPU (**A100** or better recommended)
+- `conda` or `pip` package manager
+- At least **40 GB VRAM** for large VLMs (e.g., `InternVL3_5-38B`)
 
+---
 
-
-
-
-
-
-
-
-
-
-# Quick Start
-
-## Prerequisites
-
-- Python 3.8 or higher
-- CUDA-compatible GPU (for distributed training)
-    - 1 A100 is enough
-- conda or pip package manager
-
-## Installation
+## ⚙️ Installation
 
 ```bash
 # Clone the repository
-git clone https://github.com/mohammad2012191/Vote-in-Context-Fusion.git
-cd Vote-in-Context-Fusion
+git clone https://github.com/mohammad2012191/ViC.git
+cd ViC
 
-# Using conda 
+# Create and activate the environment
 conda env create -f environment.yml
-conda activate vote-in-context-env
-```
+conda activate vic-env
+
 
 ## Required Data
 
