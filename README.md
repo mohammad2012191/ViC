@@ -1,8 +1,8 @@
 # 🎥 Vote-in-Context (ViC): Turning VLMs into Robust Zero-Shot Ranked-List Fusers
 
-[![Paper](https://img.shields.io/badge/📄_Paper-IEEE_CVF_2025-blue)](https://github.com/mohammad2012191/ViC)
+
 [![arXiv](https://img.shields.io/badge/arXiv-2508.18265-b31b1b)](https://arxiv.org/abs/2508.18265)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
 [![Stars](https://img.shields.io/github/stars/mohammad2012191/ViC?style=social)](https://github.com/mohammad2012191/ViC)
 
 ---
