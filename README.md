@@ -14,7 +14,7 @@
 where multi-retriever outputs are fused and re-ranked (ViC) to obtain the final list.</em></p>
 </div>
 
-## 🧩 Abstract (Key Points)
+## 🧩 Abstract 
 
 - 🎯 **Challenge:** Fusing ranked candidates from heterogeneous retrievers remains difficult, especially in **multi-modal video retrieval**, where traditional rank/score-based methods ignore the candidates’ actual content.
 
