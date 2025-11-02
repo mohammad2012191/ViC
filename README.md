@@ -47,13 +47,13 @@ InternVideo2-6B and InternVL 3.5-38B.</em></p>
 DiDeMo and ActivityNet. Marker size represents model parameters. The Pareto frontier (dashed line) highlights optimal trade-offs.</em></p>
 </div>
 
----
+# Guide for ViC (Vote-in-Context Fusion)
 
-##  Prerequisites
+## 🧩 Prerequisites
 - Python **3.8+**
 - CUDA-compatible GPU (**A100** or better recommended)
 - `conda` or `pip` package manager
-- At least **40 GB VRAM** for large VLMs (e.g., `InternVL3_5-38B`)
+- At least **40 GB VRAM** for large VLMs
 
 ---
 
@@ -67,8 +67,7 @@ cd ViC
 # Create and activate the environment
 conda env create -f environment.yml
 conda activate vic-env
-
-
+---
 ## Required Data
 
 1. **CSV File**: Contains video metadata with columns: `video_id`, `sentence`, found inside Groud_Truth folder
