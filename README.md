@@ -46,6 +46,7 @@ InternVideo2-6B and InternVL 3.5-38B.</em></p>
   <p><em> Efficiency vs. Performance Trade-off. Time per query vs. Avg Recall@1 for t2v retrieval over the benchmarks MSR-VTT,
 DiDeMo and ActivityNet. Marker size represents model parameters. The Pareto frontier (dashed line) highlights optimal trade-offs.</em></p>
 </div>
+
 ---
 
 
