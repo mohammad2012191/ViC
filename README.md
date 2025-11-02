@@ -45,8 +45,9 @@ modern VLMs into powerful zero-shot rerankers and fusers.
 ## 🎬 Overview
 
 <div align="center">
-  <img src="fig 1.png" width="800">
-  <p><em>ViC: List-wise reranking and fusion as a reasoning task for a frozen Vision-Language Model (VLM).</em></p>
+  <img src="fig 1.png" width="900">
+  <p><em> Left: R@1 for T2V/V2T on MSR-VTT, DiDeMo, VATEX, and ActivityNet versus strong baselines. Right: Qualitative example
+where multi-retriever outputs are fused and re-ranked (ViC) to obtain the final list.</em></p>
 </div>
 
 ---
