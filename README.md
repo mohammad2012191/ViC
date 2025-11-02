@@ -1,7 +1,7 @@
 # 🎥 Vote-in-Context (ViC): Turning VLMs into Robust Zero-Shot Ranked-List Fusers
 
 
-[![arXiv](https://img.shields.io/badge/arXiv-2508.18265-b31b1b)](https://arxiv.org/abs/2508.18265)
+[![arXiv](https://img.shields.io/badge/arXiv-2508.18265-b31b1b)](https://arxiv.org/abs/)
 
 [![Stars](https://img.shields.io/github/stars/mohammad2012191/ViC?style=social)](https://github.com/mohammad2012191/ViC)
 
