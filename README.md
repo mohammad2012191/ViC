@@ -1,3 +1,64 @@
+# 🎥 Vote-in-Context (ViC): Turning VLMs into Robust Zero-Shot Ranked-List Fusers
+
+[![Paper](https://img.shields.io/badge/📄_Paper-IEEE_CVF_2025-blue)](https://github.com/mohammad2012191/ViC)
+[![arXiv](https://img.shields.io/badge/arXiv-2508.18265-b31b1b)](https://arxiv.org/abs/2508.18265)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Stars](https://img.shields.io/github/stars/mohammad2012191/ViC?style=social)](https://github.com/mohammad2012191/ViC)
+
+---
+
+> **“Fusion by Reasoning, not by Formula.”**
+>
+> *Vote-in-Context (ViC)* redefines multimodal retrieval by transforming a frozen Vision-Language Model (VLM) into a **universal, zero-shot reranker and fuser**.  
+> By serializing content and retriever metadata *into the model’s context*, ViC performs adaptive, list-wise reasoning—achieving **state-of-the-art zero-shot video retrieval** on multiple benchmarks.
+
+---
+
+## 🎬 Overview
+
+<div align="center">
+  <img src="figure.png" width="800">
+  <p><em>ViC: List-wise reranking and fusion as a reasoning task for a frozen Vision-Language Model (VLM).</em></p>
+</div>
+
+---
+
+## ✨ Highlights
+
+- 🔄 **Unified, Training-Free Framework:**  
+  Converts any Vision-Language Model into a **content-aware reranker** and **fusion engine**.
+
+- 🧱 **S-Grid Serialization:**  
+  Represents videos as compact image grids with optional subtitles, enabling **multimodal reasoning** at constant cost.
+
+- 📈 **New Zero-Shot SOTA:**  
+  +40 Recall@1 improvement on MSR-VTT, VATEX, and ActivityNet benchmarks.
+
+- 🧮 **Two-Stage Generality:**  
+  Works as both a **single-list reranker (M=1)** and **multi-retriever fuser (M>1)**.
+
+- ⚙️ **Plug-and-Play Integration:**  
+  Compatible with CLIP4Clip, VAST, GRAM, InternVideo2, and other first-stage retrievers.
+
+---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # Quick Start
 
 ## Prerequisites
