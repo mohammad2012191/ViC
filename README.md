@@ -1,12 +1,10 @@
-# Vote-in-Context (ViC): Turning VLMs into Robust Zero-Shot Ranked-List Fusers
+# Vote-in-Context (ViC): Turning VLMs into Zero-Shot Rank Fusers
 
+<div align="center">
 
-[![arXiv](https://img.shields.io/badge/arXiv-2508.18265-b31b1b)](https://arxiv.org/abs/)
+[![arXiv](https://img.shields.io/badge/arXiv-2511.01617-b31b1b)](https://arxiv.org/abs/2511.01617)
 
-
-
-
-##  Overview
+</div>
 
 <div align="center">
   <img src="Figures/fig 1.png" width="1000">
@@ -18,18 +16,16 @@ where multi-retriever outputs are fused and re-ranked (ViC) to obtain the final 
 ---
 
 ##  Highlights
-
--  **Unified, Training-Free Framework** — Converts any Vision-Language Model into a **content-aware reranker** and **fusion engine**.  
--  **S-Grid Serialization** — Represents videos as compact image grids with optional subtitles.  
-- **New Zero-Shot SOTA** — +40 Recall@1 improvement across major benchmarks.  
--  **Plug-and-Play Integration** — Works seamlessly with CLIP4Clip, VAST, GRAM, InternVideo2, and more.
+- Joint Content & Consensus Fusion: A unified, training-free framework that turns any VLM into a robust fuser/reranker by jointly encoding content (what it sees) and retriever consensus (metadata like duplicates) in its prompt.
+- S-Grid Representation: A compact serialization map that represents entire videos as a single VLM-readable image grid (+ optional subtitles).
+- New Zero-Shot SOTA: Achieves massive gains of up to +40 R@1 over SOTA baselines and saturates benchmarks.
+- Plug-and-Play: Works out-of-the-box with any first-stage retriever (CLIP4Clip, VAST, GRAM, InternVideo2, etc.).
 ---
 
 ##  Methodology 
 <div align="center">
   <img src="Figures/fig 2.png" width="700">
-  <p><em> Left: R@1 for T2V/V2T on MSR-VTT, DiDeMo, VATEX, and ActivityNet versus strong baselines. Right: Qualitative example
-where multi-retriever outputs are fused and re-ranked (ViC) to obtain the final list.</em></p>
+  <p><em> The Vote-in-Context (ViC) framework applied for Text-to-Video (t2v, top) and Video-to-Text (v2t, bottom).</em></p>
 </div>
 
 ---
@@ -37,17 +33,16 @@ where multi-retriever outputs are fused and re-ranked (ViC) to obtain the final 
 
 <div align="center">
   <img src="Figures/fig 3.png" width="500">
-  <p><em> (a) Effect of reranker scale (InternVL 3.5, 3×3 grid) on t2v Recall@1. (b) Impact of grid size on t2v performance, using
-InternVideo2-6B and InternVL 3.5-38B.</em></p>
+  <p><em> Efficiency vs. Performance Trade-off. Time per query vs. Avg Recall@1 for t2v retrieval over the benchmarks MSR-VTT, DiDeMo and ActivityNet in zero-shot settings. Marker size represents model parameters. The Pareto frontier highlights optimal trade-offs. Latency is measured on a single NVIDIA A100 80GB GPU, averaged over 50 queries for a 1k video retrieval task.</em></p>
 </div>
 
 <div align="center">
   <img src="Figures/fig 4.png" width="700">
-  <p><em> Efficiency vs. Performance Trade-off. Time per query vs. Avg Recall@1 for t2v retrieval over the benchmarks MSR-VTT,
-DiDeMo and ActivityNet. Marker size represents model parameters. The Pareto frontier (dashed line) highlights optimal trade-offs.</em></p>
+  <p><em> (a) Effect of reranker scale (InternVL 3.5, 3×3 grid) on t2v Recall@1. (b) Impact of grid size on t2v performance, using
+InternVideo2-6B and InternVL 3.5-38B.</em></p>
 </div>
 
-# Guide for ViC (Vote-in-Context Fusion)
+# Guide for ViC
 
 ## 🧩 Prerequisites
 - Python **3.8+**
