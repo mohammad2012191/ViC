@@ -1,5 +1,5 @@
 # Vote-in-Context (ViC): Turning VLMs into Zero-Shot Rank Fusers
-
+**Authors:** Mohamed Eltahir, Ali Habibullah, Lama Ayash, Tanveer Hussain and Naeemullah Khan.
 <div align="center">
 
 [![arXiv](https://img.shields.io/badge/arXiv-2511.01617-b31b1b)](https://arxiv.org/abs/2511.01617)
@@ -214,3 +214,21 @@ python Scripts\wrapper_baseline.py \
 | Parameter | Description | Default | Methods | Example |
 |-----------|-------------|---------|---------|---------|
 | `--k` | RRF constant (rank offset parameter) | `60` | RRF only | `100` |
+
+
+## 📝 Citation
+
+If you use ViC in your research, please cite:
+
+```bibtex
+@misc{eltahir2025vic,
+      title={Vote-in-Context: Turning VLMs into Zero-Shot Rank Fusers}, 
+      author={Mohamed Eltahir and Ali Habibullah and Lama Ayash and Tanveer Hussain and Naeemullah Khan},
+      year={2025},
+      eprint={2511.01617},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/2511.01617}, 
+}
+
+```
