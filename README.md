@@ -1,4 +1,4 @@
-# Vote-in-Context (ViC): Turning VLMs into Zero-Shot Rank Fusers
+# [CVPR 2026] Vote-in-Context (ViC): Turning VLMs into Zero-Shot Rank Fusers
 **Authors:** Mohamed Eltahir, Ali Habibullah, Lama Ayash, Tanveer Hussain and Naeemullah Khan.
 <div align="center">
 
