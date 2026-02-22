@@ -22,6 +22,12 @@ where multi-retriever outputs are fused and re-ranked (ViC) to obtain the final 
 - Plug-and-Play: Works out-of-the-box with any first-stage retriever (CLIP4Clip, VAST, GRAM, InternVideo2, etc.).
 ---
 
+
+##  News
+- [22-02-2026] Accepted by CVPR 2026 Findings!🎉
+---
+
+
 ##  Methodology 
 <div align="center">
   <img src="Figures/fig 2.png" width="700">
