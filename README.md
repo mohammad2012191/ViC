@@ -227,14 +227,13 @@ python Scripts\wrapper_baseline.py \
 If you use ViC in your research, please cite:
 
 ```bibtex
-@misc{eltahir2025vic,
-      title={Vote-in-Context: Turning VLMs into Zero-Shot Rank Fusers}, 
-      author={Mohamed Eltahir and Ali Habibullah and Lama Ayash and Tanveer Hussain and Naeemullah Khan},
-      year={2025},
-      eprint={2511.01617},
-      archivePrefix={arXiv},
-      primaryClass={cs.CV},
-      url={https://arxiv.org/abs/2511.01617}, 
+@InProceedings{Eltahir_2026_CVPR,
+    author    = {Eltahir, Mohamed and Habibullah, Ali and Ayash, Lama and Hussain, Tanveer and Khan, Naeemullah},
+    title     = {Vote-in-Context: VLMs as Explainable Zero-Shot Rank Fusers},
+    booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) Findings},
+    month     = {June},
+    year      = {2026},
+    pages     = {6496-6505}
 }
 
 ```
